@@ -23,4 +23,4 @@ sequelize.sync({ alter: true })
     console.error("Error syncing the Autorite table:", err);
   });
 
-module.exports = { autoriteSchema };
+module.exports = autoriteSchema;
