@@ -13,7 +13,7 @@ const adminSchema = sequelize.define('admin', {
     email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
+      //unique: true,
       validate: {
         isEmail: true, // Validate email format
       },
@@ -41,5 +41,5 @@ const adminSchema = sequelize.define('admin', {
       console.error("Error syncing the User table:", err);
     });
 
-    module.exports = { adminSchema };
+    module.exports = adminSchema ;
   

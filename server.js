@@ -2,6 +2,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const citoyenRoutes = require('./routes/citoyenRoutes'); // Adjust path if necessary
 const adminRoutes = require('./routes/adminRoutes')
+const reclamationRoutes = require('./routes/reclamationRoutes')
+const autoriteRoutes = require('./routes/autoriteRoutes')
+const categorieRoutes = require('./routes/categorieRoutes')
+const photoRoutes = require('./routes/photoRoutes')
+
 
 const app = express();
 const PORT = 3000;
@@ -12,6 +17,12 @@ app.use(bodyParser.json());
 // Use the citoyen routes
 app.use('/api', citoyenRoutes);
 app.use('/api',adminRoutes);
+app.use('/api',reclamationRoutes);
+app.use('/api',autoriteRoutes);
+app.use('/api',categorieRoutes);
+app.use('/api',photoRoutes);
+
+
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

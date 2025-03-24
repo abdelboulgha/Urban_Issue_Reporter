@@ -1,6 +1,7 @@
 const {  DataTypes } = require('sequelize');
 const { sequelize } = require('../database/db');  // Importez votre instance Sequelize
 
+
 // Définir le schéma du modèle Citoyen
 const citoyenSchema = sequelize.define('Citoyen', {
   // Définir les champs (colonnes)
@@ -19,12 +20,12 @@ const citoyenSchema = sequelize.define('Citoyen', {
   cin: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true, // CIN doit être unique
+    //unique: true, // CIN doit être unique
   },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true, // L'email doit être unique
+    //unique: true, // L'email doit être unique
     validate: {
       isEmail: true, // Valider le format de l'email
     },
@@ -44,6 +45,8 @@ const citoyenSchema = sequelize.define('Citoyen', {
   timestamps: false, // Désactiver les colonnes createdAt et updatedAt
 });
 
+
+
 // Synchroniser le modèle avec la base de données
 sequelize.sync({ force: false, alter: true })
   .then(() => {
@@ -53,4 +56,4 @@ sequelize.sync({ force: false, alter: true })
     console.error("Erreur lors de la synchronisation de la table 'Citoyen' :", err);
   });
 
-module.exports = { citoyenSchema };
+module.exports = citoyenSchema ;
