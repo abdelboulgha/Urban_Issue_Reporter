@@ -1,4 +1,4 @@
-const { citoyenSchema } = require('../models/citoyenSchema');  // Adjust path if necessary
+const citoyenSchema  = require('../models/citoyenSchema');  // Adjust path if necessary
 
 // Service to handle creating a citoyen
 const createCitoyen = async ({ nom, prenom, adresse, cin, email, telephone, password }) => {
