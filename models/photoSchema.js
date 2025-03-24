@@ -16,12 +16,12 @@ const photoSchema = sequelize.define('Photo', {
 photoSchema.belongsTo(reclamationSchema,{foreignKey:'reclamationId'})
 
 // Sync the table
-sequelize.sync({ alter: true })
-  .then(() => {
-    console.log("Photo table has been synchronized.");
-  })
-  .catch(err => {
-    console.error("Error syncing the Photo table:", err);
-  });
+// sequelize.sync({ alter: true })
+//   .then(() => {
+//     console.log("Photo table has been synchronized.");
+//   })
+//   .catch(err => {
+//     console.error("Error syncing the Photo table:", err);
+//   });
 
 module.exports = { photoSchema };

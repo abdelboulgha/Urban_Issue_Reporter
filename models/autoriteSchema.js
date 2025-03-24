@@ -15,12 +15,12 @@ const autoriteSchema = sequelize.define('Autorite', {
 });
 
 // Sync the table
-sequelize.sync({ alter: true })
-  .then(() => {
-    console.log("Autorite table has been synchronized.");
-  })
-  .catch(err => {
-    console.error("Error syncing the Autorite table:", err);
-  });
+// sequelize.sync({ alter: true })
+//   .then(() => {
+//     console.log("Autorite table has been synchronized.");
+//   })
+//   .catch(err => {
+//     console.error("Error syncing the Autorite table:", err);
+//   });
 
 module.exports = autoriteSchema;

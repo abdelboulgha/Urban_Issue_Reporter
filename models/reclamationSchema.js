@@ -35,14 +35,14 @@ const reclamationSchema = sequelize.define('Reclamation', {
 });
 reclamationSchema.belongsTo(Citoyen, { foreignKey: 'citoyenId' });
 reclamationSchema.belongsTo(Categorie,{foreignKey:'categorieId'});
-reclamationSchema.belongsTo(Admin,{foreignKey:'adminId'});
+//reclamationSchema.belongsTo(Admin,{foreignKey:'adminId'});
 // Sync the table
-sequelize.sync({ force: true })
-  .then(() => {
-    console.log("Reclamation table has been synchronized.");
-  })
-  .catch(err => {
-    console.error("Error syncing the Reclamation table:", err);
-  });
+// sequelize.sync({ force: true })
+//   .then(() => {
+//     console.log("Reclamation table has been synchronized.");
+//   })
+//   .catch(err => {
+//     console.error("Error syncing the Reclamation table:", err);
+//   });
 
 module.exports = { reclamationSchema };

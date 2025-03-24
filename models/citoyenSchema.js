@@ -48,12 +48,12 @@ const citoyenSchema = sequelize.define('Citoyen', {
 
 
 // Synchroniser le modèle avec la base de données
-sequelize.sync({ force: false, alter: true })
-  .then(() => {
-    console.log("Table 'Citoyen' a été synchronisée (créée/modifiée si nécessaire).");
-  })
-  .catch(err => {
-    console.error("Erreur lors de la synchronisation de la table 'Citoyen' :", err);
-  });
+// sequelize.sync({ force: false, alter: true })
+//   .then(() => {
+//     console.log("Table 'Citoyen' a été synchronisée (créée/modifiée si nécessaire).");
+//   })
+//   .catch(err => {
+//     console.error("Erreur lors de la synchronisation de la table 'Citoyen' :", err);
+//   });
 
 module.exports = citoyenSchema ;
