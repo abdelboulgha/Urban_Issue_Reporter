@@ -1,4 +1,4 @@
-const { adminSchema } = require('../models/adminSchema');  // Adjust path if necessary
+const  adminSchema  = require('../models/adminSchema');  // Adjust path if necessary
 
 // Service to handle creating a citoyen
 const createAdmin = async ({ nom, prenom,  email, password ,superAdmin}) => {
@@ -14,7 +14,7 @@ const createAdmin = async ({ nom, prenom,  email, password ,superAdmin}) => {
 
     return admin;
   } catch (error) {
-    throw new Error('Error creating citoyen: ' + error.message);
+    throw new Error('Error creating admin: ' + error.message);
   }
 };
 

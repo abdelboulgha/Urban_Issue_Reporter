@@ -16,12 +16,12 @@ const categorieSchema = sequelize.define('Categorie', {
 });
 
 // Sync the table
-sequelize.sync({ alter: true })
-  .then(() => {
-    console.log("Categorie table has been synchronized.");
-  })
-  .catch(err => {
-    console.error("Error syncing the Categorie table:", err);
-  });
+// sequelize.sync({ alter: true })
+//   .then(() => {
+//     console.log("Categorie table has been synchronized.");
+//   })
+//   .catch(err => {
+//     console.error("Error syncing the Categorie table:", err);
+//   });
 
 module.exports = categorieSchema ;

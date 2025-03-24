@@ -33,13 +33,13 @@ const adminSchema = sequelize.define('admin', {
     timestamps: false, // Disable createdAt and updatedAt columns
   });
   
-  sequelize.sync({ force: false, alter: true })
-    .then(() => {
-      console.log("User table has been synchronized (created/altered if needed).");
-    })
-    .catch(err => {
-      console.error("Error syncing the User table:", err);
-    });
+  // sequelize.sync({ force: false, alter: true })
+  //   .then(() => {
+  //     console.log("User table has been synchronized (created/altered if needed).");
+  //   })
+  //   .catch(err => {
+  //     console.error("Error syncing the User table:", err);
+  //   });
 
     module.exports = adminSchema ;
   

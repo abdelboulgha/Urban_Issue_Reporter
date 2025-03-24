@@ -1,4 +1,4 @@
-const { categorieSchema } = require('../models/categorieSchema');
+const categorieSchema  = require('../models/categorieSchema');
 
 // Service to handle creating a category
 const createCategorie = async ({ libelle, description }) => {

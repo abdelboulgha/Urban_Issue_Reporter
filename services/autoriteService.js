@@ -1,4 +1,4 @@
-const { autoriteSchema } = require('../models/autoriteSchema'); // ajuste le chemin si nécessaire
+const {autoriteSchema}  = require('../models/autoriteSchema'); // ajuste le chemin si nécessaire
 
 // Service to create an Autorité
 const createAutorite = async ({ nom, description }) => {
