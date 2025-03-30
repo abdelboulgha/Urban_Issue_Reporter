@@ -12,6 +12,8 @@ const {sequelize} = require('./database/db')
 const app = express();
 const PORT = 3000;
 
+const cors = require('cors');
+app.use(cors());
 // Middleware to parse JSON request bodies
 app.use(bodyParser.json());
 

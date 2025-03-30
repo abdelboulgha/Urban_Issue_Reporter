@@ -3,8 +3,7 @@
 html,
 body,
 #root,
-.app,
-.content {
+.app {
   height: 100%;
   width: 100%;
   font-family: "Source Sans Pro", sans-serif;
@@ -13,6 +12,12 @@ body,
 .app {
   display: flex;
   position: relative;
+}
+
+.content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 ::-webkit-scrollbar {
@@ -33,4 +38,3 @@ body,
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
-

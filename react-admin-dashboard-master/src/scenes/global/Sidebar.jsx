@@ -77,7 +77,7 @@ const Sidebar = ({ isSidebar }) => {
                 ml="15px"
               >
                 <Typography variant="h3" color={colors.grey[100]}>
-                  ADMINIS
+                  ADMIN
                 </Typography>
                 <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
                   <MenuOutlinedIcon />
@@ -107,7 +107,7 @@ const Sidebar = ({ isSidebar }) => {
                   Ed Roh
                 </Typography>
                 <Typography variant="h5" color={colors.greenAccent[500]}>
-                  VP Fancy Admin
+                  Admin
                 </Typography>
               </Box>
             </Box>
@@ -130,14 +130,14 @@ const Sidebar = ({ isSidebar }) => {
               Data
             </Typography>
             <Item
-              title="Manage Team"
+              title="Gestion des réclamation"
               to="/team"
               icon={<PeopleOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
             <Item
-              title="Contacts Information"
+              title="Liste des personnels"
               to="/contacts"
               icon={<ContactsOutlinedIcon />}
               selected={selected}
@@ -153,7 +153,7 @@ const Sidebar = ({ isSidebar }) => {
               Pages
             </Typography>
             <Item
-              title="Profile Form"
+              title="Ajouter Profil"
               to="/form"
               icon={<PersonOutlinedIcon />}
               selected={selected}
