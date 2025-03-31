@@ -2,6 +2,7 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../database/db');
 const Citoyen = require('./citoyenSchema');
 const Categorie = require('./categorieSchema');
+const Region = require('./regionSchema');
 const Admin = require('./adminSchema');
 const reclamationSchema = sequelize.define('Reclamation', {
   date_de_creation: {
@@ -35,6 +36,7 @@ const reclamationSchema = sequelize.define('Reclamation', {
 });
 reclamationSchema.belongsTo(Citoyen, { foreignKey: 'citoyenId' });
 reclamationSchema.belongsTo(Categorie,{foreignKey:'categorieId'});
+reclamationSchema.belongsTo(Region,{foreignKey:'regionId'});
 //reclamationSchema.belongsTo(Admin,{foreignKey:'adminId'});
 // Sync the table
 // sequelize.sync({ force: true })
