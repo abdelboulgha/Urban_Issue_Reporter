@@ -12,25 +12,47 @@ import GeographyChart from "../../components/GeographyChart";
 import BarChart from "../../components/BarChart";
 import StatBox from "../../components/StatBox";
 import ProgressCircle from "../../components/ProgressCircle";
+import { useEffect, useState } from "react";
 
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const [userData, setUserData] = useState(null);
+  useEffect(() => {
+    const userDataString = localStorage.getItem("userData");
 
+    if (userDataString) {
+      try {
+        setUserData(JSON.parse(userDataString));
+      } catch (e) {
+        console.error(
+          "Erreur lors de la récupération des données utilisateur:",
+          e
+        );
+      }
+    }
+  }, []);
   return (
     // Container with scrollbar
-    <Box 
+    <Box
       sx={{
-        height: "100vh", 
-        overflow: "auto", 
-       
-        }
-      }
+        height: "100vh",
+        overflow: "auto",
+      }}
     >
       <Box m="20px">
         {/* HEADER */}
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Header title="DASHBOARD" subtitle="Welcome to your dashboard" />
+          <Header
+            title="DASHBOARD"
+            subtitle={
+              <>
+                Welcome{" "}
+                <span style={{ color: "black",fontWeight: "bold" }}>{userData?.prenom}</span> to
+                your dashboard
+              </>
+            }
+          />
 
           <Box>
             <Button
@@ -181,18 +203,18 @@ const Dashboard = () => {
             overflow="auto"
             sx={{
               "&::-webkit-scrollbar": {
-                width: "8px"
+                width: "8px",
               },
               "&::-webkit-scrollbar-track": {
-                backgroundColor: colors.primary[500]
+                backgroundColor: colors.primary[500],
               },
               "&::-webkit-scrollbar-thumb": {
                 backgroundColor: colors.greenAccent[500],
-                borderRadius: "4px"
+                borderRadius: "4px",
               },
               "&::-webkit-scrollbar-thumb:hover": {
-                backgroundColor: colors.greenAccent[400]
-              }
+                backgroundColor: colors.greenAccent[400],
+              },
             }}
           >
             <Box
@@ -203,7 +225,11 @@ const Dashboard = () => {
               colors={colors.grey[100]}
               p="15px"
             >
-              <Typography color={colors.grey[100]} variant="h5" fontWeight="600">
+              <Typography
+                color={colors.grey[100]}
+                variant="h5"
+                fontWeight="600"
+              >
                 Recent Transactions
               </Typography>
             </Box>
@@ -264,7 +290,9 @@ const Dashboard = () => {
               >
                 $48,352 revenue generated
               </Typography>
-              <Typography>Includes extra misc expenditures and costs</Typography>
+              <Typography>
+                Includes extra misc expenditures and costs
+              </Typography>
             </Box>
           </Box>
           <Box

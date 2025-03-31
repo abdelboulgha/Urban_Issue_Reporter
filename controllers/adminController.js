@@ -1,15 +1,23 @@
+// controllers/adminController.js
 const adminService = require('../services/adminService');
 
-// Controller to handle the creation of an admin
+// Contrôleur pour gérer la création d'un admin (déplacé vers authController)
 const createAdmin = async (req, res) => {
   try {
     const { nom, prenom, email, password, superAdmin } = req.body;
 
-    const newAdmin = await adminService.createAdmin({ nom, prenom, email, password, superAdmin });
+    // Vérifier si l'utilisateur courant est un superAdmin (seul un superAdmin peut créer d'autres superAdmins)
+    if (superAdmin && (!req.user || !req.user.superAdmin)) {
+      return res.status(403).json({
+        message: 'Seul un superAdmin peut créer un autre superAdmin'
+      });
+    }
+
+    const result = await adminService.createAdmin({ nom, prenom, email, password, superAdmin });
 
     res.status(201).json({
       message: 'Admin créé avec succès',
-      admin: newAdmin
+      admin: result.admin
     });
   } catch (error) {
     res.status(500).json({
@@ -19,7 +27,7 @@ const createAdmin = async (req, res) => {
   }
 };
 
-// Controller to get all admins
+// Contrôleur pour obtenir tous les admins
 const getAdmins = async (req, res) => {
   try {
     const admins = await adminService.getAdmins();
@@ -36,7 +44,7 @@ const getAdmins = async (req, res) => {
   }
 };
 
-// Controller to get a single admin by ID
+// Contrôleur pour obtenir un admin par son ID
 const getAdminById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -55,11 +63,25 @@ const getAdminById = async (req, res) => {
   }
 };
 
-// Controller to update an admin
+// Contrôleur pour mettre à jour un admin
 const updateAdmin = async (req, res) => {
   try {
     const { id } = req.params;
     const { nom, prenom, email, password, superAdmin } = req.body;
+
+    // Vérifier si l'utilisateur essaie de modifier un autre admin
+    if (req.user.id != id && !req.user.superAdmin) {
+      return res.status(403).json({
+        message: 'Vous n\'avez pas le droit de modifier cet admin'
+      });
+    }
+
+    // Seul un superAdmin peut promouvoir un autre admin en superAdmin
+    if (superAdmin && !req.user.superAdmin) {
+      return res.status(403).json({
+        message: 'Seul un superAdmin peut promouvoir un admin en superAdmin'
+      });
+    }
 
     const updatedAdmin = await adminService.updateAdmin(id, { nom, prenom, email, password, superAdmin });
 
@@ -75,10 +97,24 @@ const updateAdmin = async (req, res) => {
   }
 };
 
-// Controller to delete an admin
+// Contrôleur pour supprimer un admin
 const deleteAdmin = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Vérifier si l'utilisateur essaie de se supprimer lui-même
+    if (req.user.id == id) {
+      return res.status(400).json({
+        message: 'Vous ne pouvez pas supprimer votre propre compte'
+      });
+    }
+    
+    // Vérifier si l'utilisateur a les droits pour supprimer un admin
+    if (!req.user.superAdmin) {
+      return res.status(403).json({
+        message: 'Seul un superAdmin peut supprimer un admin'
+      });
+    }
 
     const result = await adminService.deleteAdmin(id);
 
@@ -93,7 +129,7 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
-// Export all controllers
+// Exporter tous les contrôleurs
 module.exports = {
   createAdmin,
   getAdmins,

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProSidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Box, IconButton, Typography, useTheme } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "react-pro-sidebar/dist/css/styles.css";
 import { tokens } from "../../theme";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
@@ -10,8 +10,9 @@ import ContactsOutlinedIcon from "@mui/icons-material/ContactsOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
+import LogoutIcon from "@mui/icons-material/Logout";
 
-const Item = ({ title, to, icon, selected, setSelected }) => {
+const Item = ({ title, to, icon, selected, setSelected, onClick }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   return (
@@ -20,11 +21,14 @@ const Item = ({ title, to, icon, selected, setSelected }) => {
       style={{
         color: colors.grey[100],
       }}
-      onClick={() => setSelected(title)}
+      onClick={() => {
+        if (setSelected) setSelected(title);
+        if (onClick) onClick();
+      }}
       icon={icon}
     >
       <Typography>{title}</Typography>
-      <Link to={to} />
+      {to && <Link to={to} />}
     </MenuItem>
   );
 };
@@ -34,6 +38,41 @@ const Sidebar = ({ isSidebar }) => {
   const colors = tokens(theme.palette.mode);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
+  const [userRole, setUserRole] = useState("");
+  const [userData, setUserData] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Récupérer le rôle de l'utilisateur du localStorage au chargement du composant
+    const role = localStorage.getItem("userRole");
+    const userDataString = localStorage.getItem("userData");
+    setUserRole(role || "");
+
+    if (userDataString) {
+      try {
+        setUserData(JSON.parse(userDataString));
+      } catch (e) {
+        console.error("Erreur lors de la récupération des données utilisateur:", e);
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    // Supprimer les données d'authentification du localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userData");
+    localStorage.removeItem("isAuthenticated");
+    
+    // Rediriger vers la page de connexion
+    navigate("/login");
+    
+    // Recharger la page pour réinitialiser l'état de l'application
+    window.location.reload();
+  };
+
+  const isSuperAdmin = userRole === 'true';
+  console.log("isSuperAdmin:", isSuperAdmin);
 
   if (!isSidebar) return null;
 
@@ -42,7 +81,6 @@ const Sidebar = ({ isSidebar }) => {
       sx={{
         "& .pro-sidebar-inner": {
           background: `${colors.primary[400]} !important`,
-          // height:'1000px'
         },
         "& .pro-icon-wrapper": {
           backgroundColor: "transparent !important",
@@ -77,7 +115,7 @@ const Sidebar = ({ isSidebar }) => {
                 ml="15px"
               >
                 <Typography variant="h3" color={colors.grey[100]}>
-                  ADMIN
+                {isSuperAdmin ? "ADMIN" : "PERSONNEL"}
                 </Typography>
                 <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
                   <MenuOutlinedIcon />
@@ -104,10 +142,11 @@ const Sidebar = ({ isSidebar }) => {
                   fontWeight="bold"
                   sx={{ m: "10px 0 0 0" }}
                 >
-                  Ed Roh
+                  {userData?.prenom || "Utilisateur"}
+                  {console.log(userData)}
                 </Typography>
                 <Typography variant="h5" color={colors.greenAccent[500]}>
-                  Admin
+                  {userData?.nom || "Utilisateurr"}
                 </Typography>
               </Box>
             </Box>
@@ -144,7 +183,6 @@ const Sidebar = ({ isSidebar }) => {
               setSelected={setSelected}
             />
           
-
             <Typography
               variant="h6"
               color={colors.grey[300]}
@@ -152,13 +190,17 @@ const Sidebar = ({ isSidebar }) => {
             >
               Pages
             </Typography>
-            <Item
-              title="Ajouter Profil"
-              to="/form"
-              icon={<PersonOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
+            
+            {/* Afficher "Ajouter Profil" uniquement si l'utilisateur est superAdmin */}
+            {isSuperAdmin && (
+              <Item
+                title="Ajouter Profil"
+                to="/form"
+                icon={<PersonOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+              />
+            )}
            
             <Item
               title="FAQ Page"
@@ -173,8 +215,16 @@ const Sidebar = ({ isSidebar }) => {
               color={colors.grey[300]}
               sx={{ m: "15px 0 5px 20px" }}
             >
+              Compte
             </Typography>
-          
+            
+            {/* Option de déconnexion */}
+            <Item
+              title="Déconnexion"
+              icon={<LogoutIcon />}
+              onClick={handleLogout}
+              selected={selected}
+            />
           </Box>
         </Menu>
       </ProSidebar>

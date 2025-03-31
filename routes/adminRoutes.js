@@ -1,20 +1,22 @@
+// routes/adminRoutes.js
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const { verifyToken, isSuperAdmin } = require('../middlewares/authMiddleware');
 
-// Route to create a new admin
-router.post('/admin', adminController.createAdmin);
+// Route pour créer un nouvel admin (protégée, seul un superAdmin peut le faire)
+router.post('/admin', verifyToken, isSuperAdmin, adminController.createAdmin);
 
-// Route to get all admins
-router.get('/admins', adminController.getAdmins);
+// Route pour obtenir tous les admins (protégée, seul un admin connecté peut le faire)
+router.get('/admins', verifyToken, adminController.getAdmins);
 
-// Route to get a single admin by ID
-router.get('/admin/:id', adminController.getAdminById);
+// Route pour obtenir un admin par son ID (protégée)
+router.get('/admin/:id', verifyToken, adminController.getAdminById);
 
-// Route to update an admin by ID
-router.put('/admin/:id', adminController.updateAdmin);
+// Route pour mettre à jour un admin par son ID (protégée)
+router.put('/admin/:id', verifyToken, adminController.updateAdmin);
 
-// Route to delete an admin by ID
-router.delete('/admin/:id', adminController.deleteAdmin);
+// Route pour supprimer un admin par son ID (protégée, seul un superAdmin peut le faire)
+router.delete('/admin/:id', verifyToken, isSuperAdmin, adminController.deleteAdmin);
 
 module.exports = router;
