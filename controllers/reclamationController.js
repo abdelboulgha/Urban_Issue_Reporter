@@ -3,7 +3,7 @@ const reclamationService = require('../services/reclamationService'); // Ensure 
 // Controller to handle creation of a reclamation
 const createReclamation = async (req, res) => {
   try {
-    const { titre, description, statut, localisation, nombre_de_votes, citoyenId, categorieId } = req.body;
+    const { titre, description, statut, localisation, nombre_de_votes, citoyenId, categorieId,regionId } = req.body;
 
     // Call the service to create a reclamation
     const newReclamation = await reclamationService.createReclamation({
@@ -13,7 +13,8 @@ const createReclamation = async (req, res) => {
       localisation,
       nombre_de_votes,
       citoyenId, // Optional, depending on your logic
-      categorieId, // Optional, depending on your logic
+      categorieId,
+      regionId, // Optional, depending on your logic
     });
 
     res.status(201).json({
@@ -72,7 +73,7 @@ const getReclamationById = async (req, res) => {
 const updateReclamation = async (req, res) => {
   try {
     const { id } = req.params; // Get the ID from the request URL
-    const { titre, description, statut, localisation, nombre_de_votes } = req.body;
+    const { titre, description, statut, localisation, nombre_de_votes, citoyenId, categorieId,regionId } = req.body;
 
     // Call the service to update the reclamation
     const updatedReclamation = await reclamationService.updateReclamation(id, {
@@ -81,6 +82,9 @@ const updateReclamation = async (req, res) => {
       statut,
       localisation,
       nombre_de_votes,
+      citoyenId,
+      categorieId,
+      regionId
     });
 
     if (!updatedReclamation) {
