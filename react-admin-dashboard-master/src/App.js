@@ -4,6 +4,7 @@ import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
 import Footer from "./scenes/global/footer"; // Importez le composant Footer
 import Dashboard from "./scenes/dashboard";
+import Map from "./scenes/map";
 import Team from "./scenes/team";
 import Contacts from "./scenes/contacts";
 import Bar from "./scenes/bar";
@@ -52,6 +53,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/team" element={<Team />} />
+                <Route path="/map" element={<Map />} />
                 <Route path="/contacts" element={<Contacts />} />
                 <Route path="/form" element={<Form />} />
                 <Route path="/bar" element={<Bar />} />
