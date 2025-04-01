@@ -1,249 +1,299 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, useTheme, Button } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import { Box, Typography, Button, Modal, Card, CardMedia, IconButton, Select, MenuItem } from "@mui/material";
+import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import CloseIcon from "@mui/icons-material/Close";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import axios from "axios";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
-import PendingOutlinedIcon from "@mui/icons-material/PendingOutlined";
-import LoopOutlinedIcon from "@mui/icons-material/LoopOutlined";
-import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import axios from "axios";
+import { useTheme } from "@mui/material";
+
+const containerStyle = {
+  width: "100%",
+  height: "250px",
+  borderRadius: "10px",
+  overflow: "hidden",
+};
+
+const modalStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: 500,
+  bgcolor: "white",
+  borderRadius: "12px",
+  boxShadow: 24,
+  p: 3,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+};
 
 const Reclamations = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [reclamations, setReclamations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [selectedReclamation, setSelectedReclamation] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [regions, setRegions] = useState([]);
+  const [userRole, setUserRole] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState("");
+  const [personnel, setPersonnel] = useState([]);
 
   useEffect(() => {
-    const fetchReclamations = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await axios.get("http://localhost:3000/api/reclamations");
-        
-        // Vérification de la structure de réponse
-        if (!response.data?.reclamations) {
-          throw new Error("Structure de données inattendue");
-        }
-
-        // Transformation des données pour correspondre au DataGrid
-        const formattedData = response.data.reclamations.map(item => ({
-          id: item.id,
-          date_de_creation: item.date_de_creation,
-          titre: item.titre,
-          description: item.description,
-          categorie: `Catégorie ${item.categorieId}`, // À adapter si vous avez les noms de catégories
-          citoyen: `Citoyen ${item.citoyenId}`, // À adapter si vous avez les noms de citoyens
-          nombre_de_votes: item.nombre_de_votes,
-          localisation: item.localisation,
-          statut: item.statut
-        }));
-        console.log(formattedData);
-        setReclamations(formattedData);
-      } catch (err) {
-        console.error("Erreur API:", err);
-        setError(err.message || "Erreur lors de la récupération des données");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReclamations();
+    // Récupérer le rôle de l'utilisateur du localStorage au chargement du composant
+    const role = localStorage.getItem("userRole");
+    setUserRole(role || "");
   }, []);
 
-  const columns = [
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const reclamationsResponse = await axios.get("http://localhost:3000/api/reclamations");
+        setReclamations(reclamationsResponse.data.reclamations);
+        
+        const categoriesResponse = await axios.get("http://localhost:3000/api/categories");
+        setCategories(categoriesResponse.data.categories);
+        
+        const regionsResponse = await axios.get("http://localhost:3000/api/regions");
+        setRegions(regionsResponse.data.regions);
+
+        // Fetch personnel data
+        const adminsResponse = await axios.get('http://localhost:3000/api/admins');
+        setPersonnel(adminsResponse.data.admins);
+      } catch (err) {
+        console.error("Erreur API:", err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleOpenModal = (reclamation) => {
+    setSelectedReclamation(reclamation);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+  };
+
+  const filteredReclamations = reclamations.filter((rec) => 
+    (selectedCategory ? rec.categorieId === selectedCategory : true) &&
+    (selectedRegion ? rec.regionId === selectedRegion : true)
+  );
+  const isSuperAdmin = userRole === 'true';
+
+  const reclamationColumns = [
     { field: "id", headerName: "ID", width: 70 },
+    { field: "titre", headerName: "Titre", flex: 1 },
+    { field: "description", headerName: "Description", flex: 1.5 },
+    { field: "statut", headerName: "Statut", flex: 1 },
+    { field: "localisation", headerName: "Localisation", flex: 1 },
+    { field: "categorieLibelle", headerName: "Catégorie", flex: 1 },
+    { field: "regionNom", headerName: "Région", flex: 1 },
     {
-      field: "date_de_creation",
-      headerName: "Date",
+      field: "action",
+      headerName: "Action",
       flex: 1,
       renderCell: (params) => (
-        <Typography>
-          {new Date(params.value).toLocaleDateString()}
-        </Typography>
-      )
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<VisibilityIcon />}
+          onClick={() => handleOpenModal(params.row)}
+        >
+          Voir
+        </Button>
+      ),
     },
+  ];
+
+  const personnelColumns = [
+    { field: "id", headerName: "ID", flex: 0.5 },
     {
-      field: "titre",
-      headerName: "Titre",
+      field: "nom",
+      headerName: "Nom",
       flex: 1,
       cellClassName: "name-column--cell",
     },
     {
-      field: "description",
-      headerName: "Description",
-      flex: 2,
-      renderCell: (params) => (
-        <Typography variant="body2" noWrap title={params.value}>
-          {params.value}
-        </Typography>
-      ),
+      field: "prenom",
+      headerName: "Prénom",
+      flex: 1,
+      cellClassName: "name-column--cell",
     },
     {
-      field: "categorie",
-      headerName: "Catégorie",
+      field: "email",
+      headerName: "Email",
       flex: 1,
     },
     {
-      field: "citoyen",
-      headerName: "Citoyen",
-      flex: 1,
-    },
-    {
-      field: "nombre_de_votes",
-      headerName: "Votes",
-      type: "number",
-      headerAlign: "center",
-      align: "center",
-      width: 100,
-    },
-    {
-      field: "localisation",
-      headerName: "Localisation",
-      flex: 1,
-      renderCell: (params) => (
-        <Box display="flex" alignItems="center">
-          <LocationOnOutlinedIcon fontSize="small" />
-          <Typography sx={{ ml: "5px" }}>
-            {params.value}
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      field: "statut",
-      headerName: "Statut",
-      flex: 1,
-      renderCell: ({ value }) => {
-        const statusConfig = {
-          en_attente: {
-            color: colors.blueAccent[600],
-            icon: <PendingOutlinedIcon />,
-            label: "En attente"
-          },
-          en_cours: {
-            //color: colors.orangeAccent[600],
-            icon: <LoopOutlinedIcon />,
-            label: "En cours"
-          },
-          résolue: {
-            color: colors.greenAccent[600],
-            icon: <CheckCircleOutlineOutlinedIcon />,
-            label: "Résolue"
-          },
-          rejetée: {
-            color: colors.redAccent[600],
-            icon: <CancelOutlinedIcon />,
-            label: "Rejetée"
-          }
-        };
-
-        const config = statusConfig[value] || {
-          color: colors.grey[500],
-          icon: <PendingOutlinedIcon />,
-          label: value
-        };
-
+      field: "superAdmin",
+      headerName: "Super Admin",
+      type: "boolean",
+      flex: 0.75,
+      renderCell: ({ row: { superAdmin } }) => {
         return (
           <Box
-            width="80%"
+            width="60%"
             m="0 auto"
             p="5px"
             display="flex"
             justifyContent="center"
-            backgroundColor={config.color}
+            backgroundColor={
+              superAdmin === true
+                ? colors.greenAccent[600]
+                : colors.redAccent[700]
+            }
             borderRadius="4px"
           >
-            {config.icon}
-            <Typography color={colors.grey[100]} sx={{ ml: "5px", textTransform: "capitalize" }}>
-              {config.label}
-            </Typography>
+            {superAdmin ? "Oui" : "Non"}
           </Box>
         );
       },
     },
   ];
 
-  if (loading) {
-    return (
-      <Box m="20px">
-        <Header title="RÉCLAMATIONS" subtitle="Chargement en cours..." />
-        <Box display="flex" justifyContent="center" mt={5}>
-          <Typography variant="h6">Chargement des réclamations...</Typography>
-        </Box>
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box m="20px">
-        <Header title="RÉCLAMATIONS" subtitle="Erreur de chargement" />
-        <Box display="flex" flexDirection="column" alignItems="center" mt={5}>
-          <Typography color="error" variant="h6" gutterBottom>
-            {error}
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => window.location.reload()}
-            sx={{ mt: 2 }}
-          >
-            Réessayer
-          </Button>
-        </Box>
-      </Box>
-    );
-  }
-
   return (
-    <Box m="20px">
-      <Header title="RÉCLAMATIONS" subtitle="Gestion des réclamations des citoyens" />
-      <Box
-        m="40px 0 0 0"
-        height="75vh"
-        sx={{
-          "& .MuiDataGrid-root": {
-            border: "none",
-          },
-          "& .MuiDataGrid-cell": {
-            borderBottom: "none",
-          },
-          "& .name-column--cell": {
-            color: colors.greenAccent[300],
-          },
-          "& .MuiDataGrid-columnHeaders": {
-            backgroundColor: colors.blueAccent[700],
-            borderBottom: "none",
-          },
-          "& .MuiDataGrid-virtualScroller": {
-            backgroundColor: colors.primary[400],
-          },
-          "& .MuiDataGrid-footerContainer": {
-            borderTop: "none",
-            backgroundColor: colors.blueAccent[700],
-          },
-          "& .MuiCheckbox-root": {
-            color: `${colors.greenAccent[200]} !important`,
-          },
-        }}
-      >
-        <DataGrid
-          rows={reclamations}
-          columns={columns}
-          loading={loading}
-          checkboxSelection
-          disableSelectionOnClick
-          sx={{
-            "& .MuiDataGrid-cell:focus": {
-              outline: "none",
-            },
-          }}
-        />
+    <Box sx={{ height: "100vh", overflow: "auto" }}>
+      <Box m="20px">
+        {isSuperAdmin ? (
+          <>
+            <Header title="RÉCLAMATIONS" subtitle="Gestion des réclamations du système" />
+            <Box display="flex" gap={2} mb={2}>
+              <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} displayEmpty>
+                <MenuItem value="">Toutes les catégories</MenuItem>
+                {categories.map((cat) => (
+                  <MenuItem key={cat.id} value={cat.id}>{cat.libelle}</MenuItem>
+                ))}
+              </Select>
+              <Select value={selectedRegion} onChange={(e) => setSelectedRegion(e.target.value)} displayEmpty>
+                <MenuItem value="">Toutes les régions</MenuItem>
+                {regions.map((reg) => (
+                  <MenuItem key={reg.id} value={reg.id}>{reg.nom}</MenuItem>
+                ))}
+              </Select>
+            </Box>
+            <Box
+              m="40px 0 0 0"
+              height="75vh"
+              sx={{
+                "& .MuiDataGrid-root": {
+                  border: "none",
+                },
+                "& .MuiDataGrid-cell": {
+                  borderBottom: "none",
+                },
+                "& .name-column--cell": {
+                  color: colors.greenAccent[300],
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  backgroundColor: colors.blueAccent[700],
+                  borderBottom: "none",
+                },
+                "& .MuiDataGrid-virtualScroller": {
+                  backgroundColor: colors.primary[400],
+                },
+                "& .MuiDataGrid-footerContainer": {
+                  borderTop: "none",
+                  backgroundColor: colors.blueAccent[700],
+                },
+                "& .MuiCheckbox-root": {
+                  color: `${colors.greenAccent[200]} !important`,
+                },
+                "& .MuiDataGrid-toolbarContainer .MuiButton-text": {
+                  color: `${colors.grey[100]} !important`,
+                },
+              }}
+            >
+              <DataGrid 
+                rows={filteredReclamations.map(rec => ({
+                  ...rec,
+                  categorieLibelle: categories.find(cat => cat.id === rec.categorieId)?.libelle || "",
+                  regionNom: regions.find(reg => reg.id === rec.regionId)?.nom || ""
+                }))}
+                columns={reclamationColumns} 
+                components={{ Toolbar: GridToolbar }}
+              />
+            </Box>
+
+            {/* Modal */}
+            <Modal open={openModal} onClose={handleCloseModal}>
+              <Box sx={modalStyle}>
+                <IconButton
+                  onClick={handleCloseModal}
+                  sx={{ position: "absolute", top: 10, right: 10 }}
+                >
+                  <CloseIcon />
+                </IconButton>
+                {selectedReclamation && (
+                  <>
+                    <Typography variant="h5" gutterBottom sx={{ color: "#1565c0" }}>{selectedReclamation.titre}</Typography>
+                    <Typography variant="body1" paragraph sx={{ textAlign: "center" }}>{selectedReclamation.description}</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#388e3c" }}>Statut: {selectedReclamation.statut}</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#d32f2f" }}>Localisation: {selectedReclamation.localisation}</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#0288d1" }}>Catégorie: {selectedReclamation.categorieLibelle}</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#7b1fa2" }}>Région: {selectedReclamation.regionNom}</Typography>
+                    <Card sx={{ width: "100%", mt: 2, borderRadius: "10px", boxShadow: 3 }}>
+                      <CardMedia
+                        component="img"
+                        height="150"
+                        image={selectedReclamation.image || "https://via.placeholder.com/400"}
+                        alt="Image de la réclamation"
+                      />
+                    </Card>
+                    <Button variant="contained" onClick={handleCloseModal} sx={{ mt: 2, bgcolor: "#1976d2" }}>Fermer</Button>
+                  </>
+                )}
+              </Box>
+            </Modal>
+          </>
+        ) : (
+          <>
+            <Header title="PERSONNELS" subtitle="Liste des personnels du système" />
+            <Box
+              m="40px 0 0 0"
+              height="75vh"
+              sx={{
+                "& .MuiDataGrid-root": {
+                  border: "none",
+                },
+                "& .MuiDataGrid-cell": {
+                  borderBottom: "none",
+                },
+                "& .name-column--cell": {
+                  color: colors.greenAccent[300],
+                },
+                "& .MuiDataGrid-columnHeaders": {
+                  backgroundColor: colors.blueAccent[700],
+                  borderBottom: "none",
+                },
+                "& .MuiDataGrid-virtualScroller": {
+                  backgroundColor: colors.primary[400],
+                },
+                "& .MuiDataGrid-footerContainer": {
+                  borderTop: "none",
+                  backgroundColor: colors.blueAccent[700],
+                },
+                "& .MuiCheckbox-root": {
+                  color: `${colors.greenAccent[200]} !important`,
+                },
+                "& .MuiDataGrid-toolbarContainer .MuiButton-text": {
+                  color: `${colors.grey[100]} !important`,
+                },
+              }}
+            >
+              <DataGrid
+                rows={personnel}
+                columns={personnelColumns}
+                components={{ Toolbar: GridToolbar }}
+              />
+            </Box>
+          </>
+        )}
       </Box>
     </Box>
   );
