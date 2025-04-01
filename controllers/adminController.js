@@ -4,7 +4,7 @@ const adminService = require('../services/adminService');
 // Contrôleur pour gérer la création d'un admin (déplacé vers authController)
 const createAdmin = async (req, res) => {
   try {
-    const { nom, prenom, email, password, superAdmin } = req.body;
+    const { nom, prenom, email, password, superAdmin,regionId } = req.body;
 
     // Vérifier si l'utilisateur courant est un superAdmin (seul un superAdmin peut créer d'autres superAdmins)
     if (superAdmin && (!req.user || !req.user.superAdmin)) {
@@ -13,7 +13,7 @@ const createAdmin = async (req, res) => {
       });
     }
 
-    const result = await adminService.createAdmin({ nom, prenom, email, password, superAdmin });
+    const result = await adminService.createAdmin({ nom, prenom, email, password, superAdmin,regionId });
 
     res.status(201).json({
       message: 'Admin créé avec succès',
@@ -67,7 +67,7 @@ const getAdminById = async (req, res) => {
 const updateAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nom, prenom, email, password, superAdmin } = req.body;
+    const { nom, prenom, email, password, superAdmin ,regionId } = req.body;
 
     // Vérifier si l'utilisateur essaie de modifier un autre admin
     if (req.user.id != id && !req.user.superAdmin) {
@@ -83,7 +83,7 @@ const updateAdmin = async (req, res) => {
       });
     }
 
-    const updatedAdmin = await adminService.updateAdmin(id, { nom, prenom, email, password, superAdmin });
+    const updatedAdmin = await adminService.updateAdmin(id, { nom, prenom, email, password, superAdmin , regionId});
 
     res.status(200).json({
       message: 'Admin mis à jour avec succès',
