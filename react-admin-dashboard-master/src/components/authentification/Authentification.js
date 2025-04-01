@@ -1,7 +1,7 @@
 // Authentication.js
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-// At the top of your Authentification.js file
+import axios from "axios"; // Ajout pour les appels API
 import "./Authentification.css";
 
 const Authentication = ({ onAuthenticate }) => {
@@ -9,32 +9,66 @@ const Authentication = ({ onAuthenticate }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
     
-    // Here you would typically make an API call to authenticate
-    // For now, we'll just call the onAuthenticate prop
-    onAuthenticate();
+    try {
+      // Appel API pour l'authentification
+      if (isSignUp) {
+        // Logique d'inscription - à adapter selon votre API
+        // const response = await axios.post("http://localhost:3000/api/auth/register", {
+        //   name,
+        //   email,
+        //   password
+        // });
+        // Traiter la réponse d'inscription ici
+      } else {
+        // Connexion
+        const response = await axios.post("http://localhost:3000/api/auth/login", {
+          email,
+          password
+        });
+        
+        // Stocker les informations d'utilisateur et le token dans localStorage
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("userRole", response.data.admin.superAdmin);
+        localStorage.setItem("isAuthenticated", true);
+        localStorage.setItem("userData", JSON.stringify(response.data.admin));
+        
+        // Appel de la fonction onAuthenticate avec les données utilisateur
+        onAuthenticate(response.data);
+        
+        // Redirection vers la page d'accueil
+        navigate("/");
+      }
+    } catch (err) {
+      console.error("Erreur d'authentification:", err);
+      setError(err.response?.data?.message || "Erreur lors de l'authentification");
+    }
   };
 
   const toggleForm = () => {
     setIsSignUp(!isSignUp);
+    setError("");
   };
 
   return (
     <div className={`container ${isSignUp ? "active" : ""}`}>
       <div className="form-container sign-in">
         <form onSubmit={handleSubmit}>
-          <h1>Sign In</h1>
+          <h1>Connexion</h1>
           <div className="social-icons">
             <a href="#" className="icon"><i className="fa-brands fa-google-plus-g"></i></a>
             <a href="#" className="icon"><i className="fa-brands fa-facebook-f"></i></a>
             <a href="#" className="icon"><i className="fa-brands fa-github"></i></a>
             <a href="#" className="icon"><i className="fa-brands fa-linkedin-in"></i></a>
           </div>
-          <span>or use your email password</span>
+          <span>ou utilisez votre email et mot de passe</span>
+          {error && <p className="error-message">{error}</p>}
           <input 
             type="email" 
             placeholder="Email" 
@@ -44,31 +78,30 @@ const Authentication = ({ onAuthenticate }) => {
           />
           <input 
             type="password" 
-            placeholder="Password" 
+            placeholder="Mot de passe" 
             required 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <a href="#">Forget Your Password?</a>
-          <button type="submit" onClick={()=>{
-            navigate("/");
-          }}>Sign In</button>
+          <a href="#">Mot de passe oublié?</a>
+          <button type="submit">Se connecter</button>
         </form>
       </div>
 
       <div className="form-container sign-up">
         <form onSubmit={handleSubmit}>
-          <h1>Create Account</h1>
+          <h1>Créer un compte</h1>
           <div className="social-icons">
             <a href="#" className="icon"><i className="fa-brands fa-google-plus-g"></i></a>
             <a href="#" className="icon"><i className="fa-brands fa-facebook-f"></i></a>
             <a href="#" className="icon"><i className="fa-brands fa-github"></i></a>
             <a href="#" className="icon"><i className="fa-brands fa-linkedin-in"></i></a>
           </div>
-          <span>or use your email for registration</span>
+          <span>ou utilisez votre email pour vous inscrire</span>
+          {error && <p className="error-message">{error}</p>}
           <input 
             type="text" 
-            placeholder="Name" 
+            placeholder="Nom" 
             required 
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -82,26 +115,26 @@ const Authentication = ({ onAuthenticate }) => {
           />
           <input 
             type="password" 
-            placeholder="Password" 
+            placeholder="Mot de passe" 
             required 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <button type="submit">Sign Up</button>
+          <button type="submit">S'inscrire</button>
         </form>
       </div>
 
       <div className="toggle-container">
         <div className="toggle">
           <div className="toggle-panel toggle-left">
-            <h1>Welcome Back!</h1>
-            <p>Enter your personal details to use all of site features</p>
-            <button className="hidden" onClick={toggleForm}>Sign In</button>
+            <h1>Bon retour !</h1>
+            <p>Entrez vos informations personnelles pour accéder à toutes les fonctionnalités</p>
+            <button className="hidden" onClick={toggleForm}>Se connecter</button>
           </div>
           <div className="toggle-panel toggle-right">
-            <h1>Hello, Friend!</h1>
-            <p>Register with your personal details to use all of site features</p>
-            <button className="hidden" onClick={toggleForm}>Sign Up</button>
+            <h1>Bonjour !</h1>
+            <p>Inscrivez-vous avec vos détails personnels pour accéder à toutes les fonctionnalités</p>
+            <button className="hidden" onClick={toggleForm}>S'inscrire</button>
           </div>
         </div>
       </div>

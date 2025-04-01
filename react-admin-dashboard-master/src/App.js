@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
@@ -19,8 +19,18 @@ import { ColorModeContext, useMode } from "./theme";
 function App() {
   const [theme, colorMode] = useMode();
   const [isSidebar, setIsSidebar] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Mettez à false en production
+  const [isAuthenticated, setIsAuthenticated] = useState(null); // null pour détecter l'état initial
   const location = useLocation();
+
+  useEffect(() => {
+    const auth = localStorage.getItem("isAuthenticated");
+    setIsAuthenticated(auth === "true"); // Convertir en booléen
+  }, []);
+
+  // Si l'authentification est en cours de vérification, afficher un écran de chargement
+  if (isAuthenticated === null) {
+    return <div>Chargement...</div>;
+  }
 
   // Si sur la page de login, afficher uniquement le formulaire d'authentification
   if (location.pathname === "/login") {
@@ -28,7 +38,10 @@ function App() {
       <ColorModeContext.Provider value={colorMode}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <Authentification onAuthenticate={() => setIsAuthenticated(true)} />
+          <Authentification onAuthenticate={() => {
+            localStorage.setItem("isAuthenticated", "true");
+            setIsAuthenticated(true);
+          }} />
         </ThemeProvider>
       </ColorModeContext.Provider>
     );

@@ -9,7 +9,8 @@ const createReclamation = async ({
   localisation,
   nombre_de_votes = 0,
   citoyenId,
-  categorieId, // Optional: Handle case if categorieId is not passed or invalid
+  categorieId,
+  regionId// Optional: Handle case if categorieId is not passed or invalid
 }) => {
   try {
     // Check if category exists
@@ -28,6 +29,7 @@ const createReclamation = async ({
       nombre_de_votes,
       citoyenId,
       categorieId,
+      regionId
     });
 
     return reclamation;
