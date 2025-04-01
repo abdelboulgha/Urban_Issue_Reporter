@@ -28,13 +28,13 @@ const login = async (req, res) => {
 // Contrôleur pour l'inscription (sign up)
 const signup = async (req, res) => {
   try {
-    const { nom, prenom, email, password, superAdmin } = req.body;
+    const { nom, prenom, email, password, superAdmin , regionId} = req.body;
     
     if (!nom || !prenom || !email || !password) {
       return res.status(400).json({ message: 'Tous les champs sont requis' });
     }
     
-    const result = await adminService.createAdmin({ nom, prenom, email, password, superAdmin });
+    const result = await adminService.createAdmin({ nom, prenom, email, password, superAdmin , regionId});
     
     res.status(201).json({
       message: 'Inscription réussie',

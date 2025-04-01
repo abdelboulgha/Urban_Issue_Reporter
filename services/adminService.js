@@ -26,15 +26,23 @@ const loginAdmin = async (email, password) => {
       throw new Error('Email ou mot de passe incorrect');
     }
     
+    // Créer l'objet payload pour le token JWT
+    const payload = { 
+      id: admin.id, 
+      email: admin.email,
+      nom: admin.nom,
+      prenom: admin.prenom,
+      superAdmin: admin.superAdmin
+    };
+    
+    // Ajouter regionId au payload seulement s'il existe
+    if (admin.regionId !== undefined) {
+      payload.regionId = admin.regionId;
+    }
+    
     // Générer le token JWT
     const token = jwt.sign(
-      { 
-        id: admin.id, 
-        email: admin.email,
-        nom: admin.nom,
-        prenom: admin.prenom,
-        superAdmin: admin.superAdmin 
-      },
+      payload,
       JWT_SECRET,
       { expiresIn: '24h' } // Expiration du token après 24h
     );
@@ -45,7 +53,8 @@ const loginAdmin = async (email, password) => {
         nom: admin.nom,
         prenom: admin.prenom,
         email: admin.email,
-        superAdmin: admin.superAdmin
+        superAdmin: admin.superAdmin,
+        regionId: admin.regionId // Inclure regionId s'il existe
       },
       token
     };
@@ -84,7 +93,7 @@ const getAdminById = async (id) => {
 };
 
 // Service pour créer un admin (inscription)
-const createAdmin = async ({ nom, prenom, email, password, superAdmin }) => {
+const createAdmin = async ({ nom, prenom, email, password, superAdmin,regionId }) => {
   try {
     // Vérifier si l'email existe déjà
     const existingAdmin = await adminSchema.findOne({ where: { email } });
@@ -102,6 +111,7 @@ const createAdmin = async ({ nom, prenom, email, password, superAdmin }) => {
       email,
       password: hashedPassword,
       superAdmin: superAdmin || false,
+      regionId,
     });
 
     // Générer un token JWT pour le nouvel admin
@@ -111,7 +121,8 @@ const createAdmin = async ({ nom, prenom, email, password, superAdmin }) => {
         email: admin.email,
         nom: admin.nom,
         prenom: admin.prenom,
-        superAdmin: admin.superAdmin 
+        superAdmin: admin.superAdmin,
+        regionId: admin.regionId 
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -124,7 +135,8 @@ const createAdmin = async ({ nom, prenom, email, password, superAdmin }) => {
         nom: admin.nom,
         prenom: admin.prenom,
         email: admin.email,
-        superAdmin: admin.superAdmin
+        superAdmin: admin.superAdmin,
+        regionId: admin.regionId
       },
       token
     };
@@ -134,7 +146,7 @@ const createAdmin = async ({ nom, prenom, email, password, superAdmin }) => {
 };
 
 // Service pour mettre à jour un admin
-const updateAdmin = async (id, { nom, prenom, email, password, superAdmin }) => {
+const updateAdmin = async (id, { nom, prenom, email, password, superAdmin,regionId }) => {
   try {
     const admin = await adminSchema.findByPk(id);
 
@@ -146,6 +158,7 @@ const updateAdmin = async (id, { nom, prenom, email, password, superAdmin }) => 
     if (nom) admin.nom = nom;
     if (prenom) admin.prenom = prenom;
     if (email) admin.email = email;
+    if(regionId) admin.regionId = regionId;
     
     // Mettre à jour le mot de passe s'il est fourni
     if (password) {
@@ -165,7 +178,8 @@ const updateAdmin = async (id, { nom, prenom, email, password, superAdmin }) => 
       nom: admin.nom,
       prenom: admin.prenom,
       email: admin.email,
-      superAdmin: admin.superAdmin
+      superAdmin: admin.superAdmin,
+      regionId: admin.regionId
     };
   } catch (error) {
     throw new Error('Erreur lors de la mise à jour de l\'admin: ' + error.message);

@@ -1,5 +1,6 @@
 const {DataTypes } = require('sequelize');
 const {sequelize} = require('../database/db')
+const Region = require('./regionSchema');
 const adminSchema = sequelize.define('admin', {
     // Define fields (columns)
     nom: {
@@ -32,6 +33,7 @@ const adminSchema = sequelize.define('admin', {
   }, {
     timestamps: false, // Disable createdAt and updatedAt columns
   });
+  adminSchema.belongsTo(Region,{foreignKey:'regionId'});
   
   // sequelize.sync({ force: false, alter: true })
   //   .then(() => {
