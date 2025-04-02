@@ -11,11 +11,15 @@
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.1.1",
+    "chart.js": "^4.4.8",
     "cors": "^2.8.5",
+    "d3-geo": "^3.1.1",
+    "d3-geo-projection": "^4.0.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.0",
+    "react-simple-maps": "^3.0.0",
     "sequelize": "^6.37.6"
   },
   "devDependencies": {

@@ -98,10 +98,20 @@ const deleteregion = async (req, res) => {
   }
 };
 
+const getRegionsCount = async (req, res) => {
+  try {
+    const countData = await regionService.getRegionsCount();
+    res.status(200).json({ message: 'Nombre total de regions récupéré', data: countData });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération du nombre total de regions', error: error.message });
+  }
+};
+
 module.exports = {
   createregion,
   getAllregions,
   getregionById,
   updateregion,
   deleteregion,
+  getRegionsCount
 };

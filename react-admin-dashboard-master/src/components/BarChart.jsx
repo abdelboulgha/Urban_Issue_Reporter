@@ -1,129 +1,123 @@
-import { useTheme } from "@mui/material";
-import { ResponsiveBar } from "@nivo/bar";
-import { tokens } from "../theme";
-import { mockBarData as data } from "../data/mockData";
+import React, { useEffect, useState } from 'react';
+import { Bar } from 'react-chartjs-2';
+import axios from 'axios';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Box } from "@mui/material";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const BarChart = ({ isDashboard = false }) => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
+  const [chartData, setChartData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get('http://localhost:3000/api/reclamations-by-region');
+        const data = response.data.data;
+
+        const labels = data.map(item => item.region);
+        const counts = data.map(item => item.count);
+
+        setChartData({
+          labels,
+          datasets: [
+            {
+              label: 'Réclamations par région',
+              data: counts,
+              backgroundColor: 'rgba(54, 162, 235, 0.5)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 1
+            }
+          ]
+        });
+      } catch (error) {
+        console.error('Erreur lors de la récupération des données:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
-    <ResponsiveBar
-      data={data}
-      theme={{
-        // added
-        axis: {
-          domain: {
-            line: {
-              stroke: colors.grey[100],
-            },
-          },
-          legend: {
-            text: {
-              fill: colors.grey[100],
-            },
-          },
-          ticks: {
-            line: {
-              stroke: colors.grey[100],
-              strokeWidth: 1,
-            },
-            text: {
-              fill: colors.grey[100],
-            },
-          },
-        },
-        legends: {
-          text: {
-            fill: colors.grey[100],
-          },
-        },
-      }}
-      keys={["hot dog", "burger", "sandwich", "kebab", "fries", "donut"]}
-      indexBy="country"
-      margin={{ top: 50, right: 130, bottom: 50, left: 60 }}
-      padding={0.3}
-      valueScale={{ type: "linear" }}
-      indexScale={{ type: "band", round: true }}
-      colors={{ scheme: "nivo" }}
-      defs={[
-        {
-          id: "dots",
-          type: "patternDots",
-          background: "inherit",
-          color: "#38bcb2",
-          size: 4,
-          padding: 1,
-          stagger: true,
-        },
-        {
-          id: "lines",
-          type: "patternLines",
-          background: "inherit",
-          color: "#eed312",
-          rotation: -45,
-          lineWidth: 6,
-          spacing: 10,
-        },
-      ]}
-      borderColor={{
-        from: "color",
-        modifiers: [["darker", "1.6"]],
-      }}
-      axisTop={null}
-      axisRight={null}
-      axisBottom={{
-        tickSize: 5,
-        tickPadding: 5,
-        tickRotation: 0,
-        legend: isDashboard ? undefined : "country", // changed
-        legendPosition: "middle",
-        legendOffset: 32,
-      }}
-      axisLeft={{
-        tickSize: 5,
-        tickPadding: 5,
-        tickRotation: 0,
-        legend: isDashboard ? undefined : "food", // changed
-        legendPosition: "middle",
-        legendOffset: -40,
-      }}
-      enableLabel={false}
-      labelSkipWidth={12}
-      labelSkipHeight={12}
-      labelTextColor={{
-        from: "color",
-        modifiers: [["darker", 1.6]],
-      }}
-      legends={[
-        {
-          dataFrom: "keys",
-          anchor: "bottom-right",
-          direction: "column",
-          justify: false,
-          translateX: 120,
-          translateY: 0,
-          itemsSpacing: 2,
-          itemWidth: 100,
-          itemHeight: 20,
-          itemDirection: "left-to-right",
-          itemOpacity: 0.85,
-          symbolSize: 20,
-          effects: [
-            {
-              on: "hover",
-              style: {
-                itemOpacity: 1,
-              },
-            },
-          ],
-        },
-      ]}
-      role="application"
-      barAriaLabel={function (e) {
-        return e.id + ": " + e.formattedValue + " in country: " + e.indexValue;
-      }}
-    />
+      <Box
+          sx={{
+            width: '100%',
+            height: isDashboard ? '100%' : 'auto',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+      >
+        <h3 style={{
+          margin: isDashboard ? '0 0 10px 0' : '0 0 15px 0',
+          textAlign: 'center'
+        }}>
+          Répartition des Réclamations par Région
+        </h3>
+
+        <Box
+            sx={{
+              width: '100%',
+              height: isDashboard ? 'calc(100% - 40px)' : '400px',
+              position: 'relative'
+            }}
+        >
+          {loading ? (
+              <p>Chargement...</p>
+          ) : chartData ? (
+              <Bar
+                  data={chartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top',
+                        display: !isDashboard || window.innerWidth > 600,
+                        labels: {
+                          boxWidth: isDashboard ? 10 : 15,
+                          padding: isDashboard ? 8 : 15,
+                          font: {
+                            size: isDashboard ? 10 : 12
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        ticks: {
+                          maxRotation: 45,
+                          minRotation: 45,
+                          font: {
+                            size: isDashboard ? 9 : 11
+                          }
+                        },
+                        grid: {
+                          display: !isDashboard
+                        }
+                      },
+                      y: {
+                        beginAtZero: true,
+                        grid: {
+                          display: !isDashboard
+                        },
+                        ticks: {
+                          font: {
+                            size: isDashboard ? 10 : 12
+                          }
+                        }
+                      }
+                    }
+                  }}
+              />
+          ) : (
+              <p>Aucune donnée disponible</p>
+          )}
+        </Box>
+      </Box>
   );
 };
 

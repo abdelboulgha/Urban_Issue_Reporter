@@ -1,4 +1,5 @@
 const citoyenService = require('../services/citoyenService');
+const adminService = require("../services/adminService");
 
 // CREATE - Add a new citoyen
 const createCitoyen = async (req, res) => {
@@ -62,10 +63,20 @@ const deleteCitoyen = async (req, res) => {
   }
 };
 
+const getCitoyensCount = async (req, res) => {
+  try {
+    const countData = await citoyenService.getCitoyensCount();
+    res.status(200).json({ message: 'Nombre total de citoyens récupéré', data: countData });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération du nombre total de citoyens', error: error.message });
+  }
+};
+
 module.exports = {
   createCitoyen,
   getAllCitoyens,
   getCitoyenById,
   updateCitoyen,
-  deleteCitoyen
+  deleteCitoyen,
+  getCitoyensCount
 };

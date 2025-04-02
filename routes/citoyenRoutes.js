@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const citoyenController = require('../controllers/citoyenController');
+const regionController = require("../controllers/regionController");
 
 // CREATE - Create a new citoyen
 router.post('/citoyen', citoyenController.createCitoyen);
@@ -16,6 +17,8 @@ router.put('/citoyen/:id', citoyenController.updateCitoyen);
 
 // DELETE - Delete a citoyen by ID
 router.delete('/citoyen/:id', citoyenController.deleteCitoyen);
+
+router.get("/citoyens-count", citoyenController.getCitoyensCount);
 
 module.exports = router;
 
