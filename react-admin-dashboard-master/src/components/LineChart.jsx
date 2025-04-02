@@ -1,117 +1,172 @@
-import { ResponsiveLine } from "@nivo/line";
-import { useTheme } from "@mui/material";
-import { tokens } from "../theme";
-import { mockLineData as data } from "../data/mockData";
+import React, {useEffect, useState} from 'react';
+import {Line} from 'react-chartjs-2';
+import axios from 'axios';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+} from 'chart.js';
+import {Box, TextField, Button} from '@mui/material';
 
-const LineChart = ({ isCustomLineColors = false, isDashboard = false }) => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-  return (
-    <ResponsiveLine
-      data={data}
-      theme={{
-        axis: {
-          domain: {
-            line: {
-              stroke: colors.grey[100],
-            },
-          },
-          legend: {
-            text: {
-              fill: colors.grey[100],
-            },
-          },
-          ticks: {
-            line: {
-              stroke: colors.grey[100],
-              strokeWidth: 1,
-            },
-            text: {
-              fill: colors.grey[100],
-            },
-          },
-        },
-        legends: {
-          text: {
-            fill: colors.grey[100],
-          },
-        },
-        tooltip: {
-          container: {
-            color: colors.primary[500],
-          },
-        },
-      }}
-      colors={isDashboard ? { datum: "color" } : { scheme: "nivo" }} // added
-      margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
-      xScale={{ type: "point" }}
-      yScale={{
-        type: "linear",
-        min: "auto",
-        max: "auto",
-        stacked: true,
-        reverse: false,
-      }}
-      yFormat=" >-.2f"
-      curve="catmullRom"
-      axisTop={null}
-      axisRight={null}
-      axisBottom={{
-        orient: "bottom",
-        tickSize: 0,
-        tickPadding: 5,
-        tickRotation: 0,
-        legend: isDashboard ? undefined : "transportation", // added
-        legendOffset: 36,
-        legendPosition: "middle",
-      }}
-      axisLeft={{
-        orient: "left",
-        tickValues: 5, // added
-        tickSize: 3,
-        tickPadding: 5,
-        tickRotation: 0,
-        legend: isDashboard ? undefined : "count", // added
-        legendOffset: -40,
-        legendPosition: "middle",
-      }}
-      enableGridX={false}
-      enableGridY={false}
-      pointSize={8}
-      pointColor={{ theme: "background" }}
-      pointBorderWidth={2}
-      pointBorderColor={{ from: "serieColor" }}
-      pointLabelYOffset={-12}
-      useMesh={true}
-      legends={[
-        {
-          anchor: "bottom-right",
-          direction: "column",
-          justify: false,
-          translateX: 100,
-          translateY: 0,
-          itemsSpacing: 0,
-          itemDirection: "left-to-right",
-          itemWidth: 80,
-          itemHeight: 20,
-          itemOpacity: 0.75,
-          symbolSize: 12,
-          symbolShape: "circle",
-          symbolBorderColor: "rgba(0, 0, 0, .5)",
-          effects: [
-            {
-              on: "hover",
-              style: {
-                itemBackground: "rgba(0, 0, 0, .03)",
-                itemOpacity: 1,
-              },
-            },
-          ],
-        },
-      ]}
-    />
-  );
+const LineChar = ({isDashboard = false}) => {
+    const [chartData, setChartData] = useState(null);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [loading, setLoading] = useState(false);
+
+
+    // French month names
+    const frenchMonths = [
+        'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    ];
+
+    // Fetch data when the selected year changes
+    const fetchData = async (year) => {
+        setLoading(true);
+        try {
+            const response = await axios.get(`http://localhost:3000/api/reclamations/${year}`);
+            const data = response.data.data;
+
+            // Format data for the chart
+            const months = Array.from({length: 12}, (_, i) => i + 1);
+            const counts = months.map(month => {
+                const monthData = data.find(item => item.month === month);
+                return monthData ? monthData.count : 0; // Set 0 if no complaints for that month
+            });
+
+            setChartData({
+                labels: months.map(month => frenchMonths[month - 1]),
+                datasets: [
+                    {
+                        label: `Réclamations pour l'année ${year}`,
+                        data: counts,
+                        fill: false,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        tension: 0.1
+                    }
+                ]
+            });
+        } catch (error) {
+            console.error('Erreur lors de la récupération des données:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+
+    useEffect(() => {
+        fetchData(selectedYear);
+    }, [selectedYear]);
+
+
+
+    return (
+        <Box sx={{
+            width: '100%',
+            height: isDashboard ? '100%' : 'auto',
+            display: 'flex',
+            flexDirection: 'column'
+        }}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    width: '100%',
+                    mb: 1
+                }}
+            >
+                <h3 style={{margin: isDashboard ? '0 0 8px 0' : '0'}}>
+                    Réclamations pour {selectedYear}
+                </h3>
+
+                <TextField
+                    label="Année"
+                    type="number"
+                    value={selectedYear}
+                    id="standard-basic"
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    size="small"
+                    sx={{
+                        width: isDashboard ? '100px' : '150px',
+                        '& .MuiInputBase-input': {
+                            padding: isDashboard ? '8px 10px' : '10px 14px',
+                        }
+                    }}
+                />
+            </Box>
+
+            {/* Loading Indicator */}
+            {loading ? <p>Chargement...</p> : null}
+
+            {/* Line Chart Container */}
+            <Box sx={{
+                width: '100%',
+                height: isDashboard ? 'calc(100% - 40px)' : '300px', // Adjust for header height
+                flex: '1',
+                position: 'relative'
+            }}>
+                {chartData && !loading ? (
+                    <Line
+                        data={chartData}
+                        options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: !isDashboard || window.innerWidth > 600,
+                                    position: 'bottom',
+                                    labels: {
+                                        boxWidth: 10,
+                                        padding: 10,
+                                        font: {
+                                            size: isDashboard ? 10 : 12
+                                        }
+                                    }
+                                },
+                                title: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    ticks: {
+                                        maxRotation: 45,
+                                        minRotation: 45,
+                                        font: {
+                                            size: isDashboard ? 9 : 11
+                                        }
+                                    },
+                                    grid: {
+                                        display: !isDashboard
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        display: !isDashboard
+                                    },
+                                    ticks: {
+                                        font: {
+                                            size: isDashboard ? 10 : 12
+                                        }
+                                    }
+                                }
+                            }
+                        }}
+                    />
+                ) : null}
+            </Box>
+        </Box>
+    );
 };
 
-export default LineChart;
+export default LineChar;
