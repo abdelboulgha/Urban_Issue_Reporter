@@ -1,5 +1,7 @@
 // controllers/adminController.js
 const adminService = require('../services/adminService');
+const regionSchema = require("../models/regionSchema");
+const regionService = require("../services/regionService");
 
 // Contrôleur pour gérer la création d'un admin (déplacé vers authController)
 const createAdmin = async (req, res) => {
@@ -129,11 +131,20 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
+const getAdminsCount = async (req, res) => {
+  try {
+    const countData = await adminService.getAdminsCount();
+    res.status(200).json({ message: 'Nombre total de admins récupéré', data: countData });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération du nombre total de admins', error: error.message });
+  }
+};
 // Exporter tous les contrôleurs
 module.exports = {
   createAdmin,
   getAdmins,
   getAdminById,
   updateAdmin,
-  deleteAdmin
+  deleteAdmin,
+  getAdminsCount
 };

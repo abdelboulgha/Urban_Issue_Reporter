@@ -16,5 +16,6 @@ router.put("/region/:id", regionController.updateregion);
 
 // Route to delete an autorité by ID
 router.delete("/region/:id", regionController.deleteregion);
+router.get("/regions-count", regionController.getRegionsCount);
 
 module.exports = router;

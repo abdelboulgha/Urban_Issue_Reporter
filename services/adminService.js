@@ -2,6 +2,7 @@
 const adminSchema = require('../models/adminSchema');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const regionSchema = require("../models/regionSchema");
 
 // La clé secrète pour signer le token JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'votre_clé_secrète_très_sécurisée';
@@ -204,6 +205,15 @@ const deleteAdmin = async (id) => {
   }
 };
 
+const getAdminsCount = async () => {
+  try {
+    const count = await adminSchema.count();
+    return { totalAdmins: count };
+  } catch (error) {
+    throw new Error('Error fetching total admins count: ' + error.message);
+  }
+};
+
 module.exports = { 
   getAdmins, 
   getAdminById, 
@@ -211,5 +221,6 @@ module.exports = {
   updateAdmin, 
   deleteAdmin,
   loginAdmin,
+  getAdminsCount,
   JWT_SECRET  // Exporter la clé secrète pour la réutiliser dans le middleware d'authentification
 };

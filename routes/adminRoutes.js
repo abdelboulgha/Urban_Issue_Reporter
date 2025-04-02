@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { verifyToken, isSuperAdmin } = require('../middlewares/authMiddleware');
+const citoyenController = require("../controllers/citoyenController");
 
 // Route pour créer un nouvel admin (protégée, seul un superAdmin peut le faire)
 router.post('/admin', verifyToken, isSuperAdmin, adminController.createAdmin);
@@ -18,5 +19,8 @@ router.put('/admin/:id', verifyToken, adminController.updateAdmin);
 
 // Route pour supprimer un admin par son ID (protégée, seul un superAdmin peut le faire)
 router.delete('/admin/:id', verifyToken, isSuperAdmin, adminController.deleteAdmin);
+
+router.get("/admins-count", adminController.getAdminsCount);
+
 
 module.exports = router;

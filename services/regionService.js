@@ -89,10 +89,20 @@ const deleteregion = async (id) => {
   }
 };
 
+const getRegionsCount = async () => {
+  try {
+    const count = await regionSchema.count();
+    return { totalRegions: count };
+  } catch (error) {
+    throw new Error('Error fetching total regions count: ' + error.message);
+  }
+};
+
 module.exports = {
   createregion,
   getAllregions,
   getregionById,
   updateregion,
   deleteregion,
+  getRegionsCount
 };
