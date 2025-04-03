@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Pie } from 'react-chartjs-2';
+import { Pie, Doughnut } from 'react-chartjs-2';
 import axios from 'axios';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Box } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
+import {tokens} from "../theme";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const PieChart = ({ isDashboard = false }) => {
+const DoughnutChart = ({ isDashboard = false }) => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
+    const theme = useTheme();
+    const colors = tokens(theme.palette.mode);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -27,16 +30,16 @@ const PieChart = ({ isDashboard = false }) => {
               label: 'Réclamations par statut',
               data: counts,
               backgroundColor: [
-                'rgba(255, 99, 132, 0.5)',
-                'rgba(54, 162, 235, 0.5)',
-                'rgba(255, 206, 86, 0.5)',
-                'rgba(75, 192, 192, 0.5)'
+                  colors.redAccent[700],
+                  'rgba(54, 162, 235, 0.5)',
+                colors.greenAccent[500],
+                'rgba(255, 206, 86, 0.5)'
               ],
               borderColor: [
-                'rgba(255, 99, 132, 1)',
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 206, 86, 1)',
-                'rgba(75, 192, 192, 1)'
+                  colors.redAccent[700],
+                  'rgba(54, 162, 235, 0.5)',
+                  colors.greenAccent[500],
+                  'rgba(255, 206, 86, 0.5)'
               ],
               borderWidth: 1
             }
@@ -79,11 +82,12 @@ const PieChart = ({ isDashboard = false }) => {
           {loading ? (
               <p>Chargement...</p>
           ) : chartData ? (
-              <Pie
+              <Doughnut
                   data={chartData}
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '80%',
                     plugins: {
                       legend: {
                         position: isDashboard ? 'right' : 'bottom',
@@ -118,4 +122,4 @@ const PieChart = ({ isDashboard = false }) => {
   );
 };
 
-export default PieChart;
+export default DoughnutChart;
