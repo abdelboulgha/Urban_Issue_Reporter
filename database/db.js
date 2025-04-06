@@ -1,22 +1,24 @@
 require('dotenv').config();
-const mysql = require('mysql2');
+const { Sequelize } = require('sequelize');
 
-const { Sequelize, DataTypes } = require('sequelize');
-
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
-  host: process.env.DB_HOST, 
-  dialect: 'mysql',
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false, // Needed for Supabase SSL
+    },
+  },
 });
 
-const connectionToMySql = () => {
-sequelize.authenticate()
-.then(() => {
-  console.log('Connection has been established successfully.');
-})
-.catch(err => {
-  console.error('Unable to connect to the database:', err);
-});
+const connectionToPostgres = () => {
+  sequelize.authenticate()
+    .then(() => {
+      console.log('Connected to Supabase PostgreSQL successfully!');
+    })
+    .catch((err) => {
+      console.error('Unable to connect to Supabase PostgreSQL:', err);
+    });
 };
 
-
-module.exports = { connectionToMySql,sequelize};
+module.exports = { connectionToPostgres, sequelize };
