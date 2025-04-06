@@ -1,7 +1,7 @@
 const { reclamationSchema } = require('../models/reclamationSchema'); // Adjust path if needed
 const regionSchema = require("../models/regionSchema");
 
-const  Categorie  = require('../models/categorieSchema');
+const  categorieSchema  = require('../models/categorieSchema');
 const {Sequelize} = require("sequelize"); // Ensure correct import
 
 const createReclamation = async ({
@@ -54,13 +54,26 @@ const getAllReclamations = async () => {
 // READ - Get a specific reclamation by ID
 const getReclamationById = async (id) => {
   try {
-    const reclamation = await reclamationSchema.findByPk(id);
+    const reclamation = await reclamationSchema.findByPk(id, {
+      include: [
+        {
+          model: categorieSchema,
+          attributes: ['libelle'], // Sélectionne uniquement le libellé de la catégorie
+        },
+        {
+          model: regionSchema,
+          attributes: ['nom'], // Sélectionne uniquement le libellé de la région
+        },
+      ],
+    });
+
     if (!reclamation) {
-      throw new Error('Reclamation not found');
+      throw new Error('Réclamation non trouvée');
     }
+
     return reclamation;
   } catch (error) {
-    throw new Error('Error fetching reclamation: ' + error.message);
+    throw new Error('Erreur lors de la récupération de la réclamation : ' + error.message);
   }
 };
 

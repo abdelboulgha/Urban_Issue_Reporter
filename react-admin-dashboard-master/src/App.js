@@ -14,6 +14,8 @@ import Authentification from "./components/authentification/Authentification";
 import { CssBaseline, ThemeProvider, Box } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
 import Map from "./scenes/map";
+import Categories from "./scenes/categorie";
+import Reclamation from "./scenes/team/Reclamation";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -67,13 +69,17 @@ function App() {
                 <Route path="/contacts" element={<Contacts />} />
                 <Route path="/map" element={<Map />} />
                 <Route path="/form" element={<Form />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/bar" element={<Bar />} />
                 <Route path="/faq" element={<FAQ />} />
+                <Route path="/reclamation/:id" element={<Reclamation />} />
                 <Route path="/geography" element={<Geography />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Box>
             <Footer />
           </Box>
+
         </div>
       </ThemeProvider>
     </ColorModeContext.Provider>

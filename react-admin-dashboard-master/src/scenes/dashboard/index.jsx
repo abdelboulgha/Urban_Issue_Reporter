@@ -12,7 +12,7 @@ import MapOfMorocco from "../../images/map-of-morocco.png";
 
 import BarChart from "../../components/BarChart";
 import {useEffect, useState} from "react";
-import PieChart from "../../components/PieChart";
+import DoughnutChart from "../../components/DoughnutChart";
 import axios from "axios";
 import {useNavigate} from "react-router-dom";
 
@@ -150,7 +150,7 @@ const Dashboard = () => {
                 <Box
                     display="grid"
                     gridTemplateColumns="repeat(12, 1fr)"
-                    gridAutoRows="120px"
+                    gridAutoRows="200px"
                     gap="20px"
                 >
                     {/* ROW 1 */}
@@ -364,7 +364,7 @@ const Dashboard = () => {
                             alignItems="center"
                             height="100%"  // Make sure this is set
                         >
-                            <PieChart isDashboard={true}/>
+                            <DoughnutChart isDashboard={true}/>
                         </Box>
                     </Box>
                     <Box

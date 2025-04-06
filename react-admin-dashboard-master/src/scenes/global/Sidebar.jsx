@@ -64,10 +64,10 @@ const Sidebar = ({ isSidebar }) => {
     localStorage.removeItem("userRole");
     localStorage.removeItem("userData");
     localStorage.removeItem("isAuthenticated");
-    
+
     // Rediriger vers la page de connexion
     navigate("/login");
-    
+
     // Recharger la page pour réinitialiser l'état de l'application
     window.location.reload();
   };
@@ -116,7 +116,7 @@ const Sidebar = ({ isSidebar }) => {
                 ml="15px"
               >
                 <Typography variant="h3" color={colors.grey[100]}>
-                {isSuperAdmin ? "ADMIN" : "PERSONNEL"}
+                  {isSuperAdmin ? "ADMIN" : "PERSONNEL"}
                 </Typography>
                 <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
                   <MenuOutlinedIcon />
@@ -176,21 +176,31 @@ const Sidebar = ({ isSidebar }) => {
               selected={selected}
               setSelected={setSelected}
             />
-          <Item
+            <Item
               title="Map"
               to="/map"
               icon={<MapIcon />}
               selected={selected}
               setSelected={setSelected}
-          />
+            />
+             {isSuperAdmin && (
+            <Item
+              title="Gestion des Catégories"
+              to="/categories"
+              icon={<MapIcon />}
+              selected={selected}
+              setSelected={setSelected}
+            />
+             )}
+              {isSuperAdmin && (
             <Item
               title="Liste des personnels"
               to="/contacts"
               icon={<ContactsOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
-            />
-          
+            />)}
+ {isSuperAdmin && (
             <Typography
               variant="h6"
               color={colors.grey[300]}
@@ -198,7 +208,7 @@ const Sidebar = ({ isSidebar }) => {
             >
               Pages
             </Typography>
-            
+ )}
             {/* Afficher "Ajouter Profil" uniquement si l'utilisateur est superAdmin */}
             {isSuperAdmin && (
               <Item
@@ -209,14 +219,14 @@ const Sidebar = ({ isSidebar }) => {
                 setSelected={setSelected}
               />
             )}
-           
-            <Item
+
+            {/* <Item
               title="FAQ Page"
               to="/faq"
               icon={<HelpOutlineOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
-            />
+            /> */}
 
             <Typography
               variant="h6"
@@ -225,7 +235,7 @@ const Sidebar = ({ isSidebar }) => {
             >
               Compte
             </Typography>
-            
+
             {/* Option de déconnexion */}
             <Item
               title="Déconnexion"

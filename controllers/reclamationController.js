@@ -49,7 +49,7 @@ const getAllReclamations = async (req, res) => {
 // Controller to get a specific reclamation by ID
 const getReclamationById = async (req, res) => {
   try {
-    const { id } = req.params; // Assuming the ID is passed in the URL
+    const { id } = req.params;
     const reclamation = await reclamationService.getReclamationById(id);
 
     if (!reclamation) {
@@ -60,7 +60,11 @@ const getReclamationById = async (req, res) => {
 
     res.status(200).json({
       message: 'Réclamation récupérée avec succès',
-      reclamation,
+      reclamation: {
+        reclamation,
+        categorie: reclamation.categorie ? reclamation.categorie.libelle : 'Non défini',
+        region: reclamation.region ? reclamation.region.libelle : 'Non définie',
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -69,6 +73,8 @@ const getReclamationById = async (req, res) => {
     });
   }
 };
+
+
 
 // Controller to update a reclamation
 const updateReclamation = async (req, res) => {
