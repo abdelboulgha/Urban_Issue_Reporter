@@ -20,15 +20,15 @@ const defaultCenter = {
 const statusColors = {
     en_attente: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
     en_cours: "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png",
-    resolu: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
-    rejete: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+    résolue: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
+    rejetée: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
 };
 
 const statusLabels = {
     en_attente: "En attente",
     en_cours: "En cours",
-    resolu: "Résolu",
-    rejete: "Rejeté",
+    résolue: "Résolu",
+    rejetée: "Rejeté",
 };
 
 const Map = () => {
@@ -46,12 +46,12 @@ const Map = () => {
     const [markersReady, setMarkersReady] = useState(false);
     const [mapType, setMapType] = useState('roadmap'); // 'roadmap' or 'satellite'
 
-    // State for status filters - all true by default
+    // Status filters - Set only en_attente and en_cours to true by default
     const [statusFilters, setStatusFilters] = useState({
         en_attente: true,
         en_cours: true,
-        resolu: true,
-        rejete: true,
+        résolue: false,
+        rejetée: false,
     });
 
     // Parse location string
@@ -92,8 +92,11 @@ const Map = () => {
 
                     setReclamations(processedReclamations);
 
-                    // Find first valid location for center
-                    const firstValidRec = processedReclamations.find(rec => rec.parsedLocation);
+                    // Find first valid location for center (prioritize active reclamations)
+                    const firstValidRec = processedReclamations.find(rec =>
+                        rec.parsedLocation && (rec.statut === 'en_attente' || rec.statut === 'en_cours')
+                    ) || processedReclamations.find(rec => rec.parsedLocation);
+
                     if (firstValidRec) {
                         setCenter(firstValidRec.parsedLocation);
                     }
@@ -248,7 +251,7 @@ const Map = () => {
                                             '&.Mui-checked': {
                                                 color: status === 'en_attente' ? '#2196f3' :
                                                     status === 'en_cours' ? '#ffc107' :
-                                                        status === 'resolu' ? '#4caf50' : '#f44336'
+                                                        status === 'résolue' ? '#4caf50' : '#f44336'
                                             }
                                         }}
                                     />
@@ -265,7 +268,7 @@ const Map = () => {
                                                 mr: 1,
                                                 backgroundColor: status === 'en_attente' ? '#2196f3' :
                                                     status === 'en_cours' ? '#ffc107' :
-                                                        status === 'resolu' ? '#4caf50' : '#f44336'
+                                                        status === 'résolue' ? '#4caf50' : '#f44336'
                                             }}
                                         />
                                         {statusLabels[status]}
@@ -383,10 +386,6 @@ const Map = () => {
                                 <InfoWindow
                                     position={selectedReclamation.parsedLocation}
                                     onCloseClick={() => setSelectedReclamation(null)}
-                                    // Simplified options - removed potentially problematic closeBoxURL property
-                                    options={{
-                                        pixelOffset: new window.google.maps.Size(0, -40)
-                                    }}
                                 >
                                     <Box sx={{
                                         p: 2,
@@ -421,7 +420,7 @@ const Map = () => {
                                                     mr: 1,
                                                     backgroundColor: selectedReclamation.statut === 'en_attente' ? '#2196f3' :
                                                         selectedReclamation.statut === 'en_cours' ? '#ffc107' :
-                                                            selectedReclamation.statut === 'resolu' ? '#4caf50' : '#f44336'
+                                                            selectedReclamation.statut === 'résolue' ? '#4caf50' : '#f44336'
                                                 }}
                                             />
                                             <Typography
