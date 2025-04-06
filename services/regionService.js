@@ -98,11 +98,22 @@ const getRegionsCount = async () => {
   }
 };
 
+const getRegions = async () => {
+  try {
+    return await regionSchema.findAll({
+      attributes: ['id', 'nom']
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   createregion,
   getAllregions,
   getregionById,
   updateregion,
   deleteregion,
-  getRegionsCount
+  getRegionsCount,
+  getRegions
 };

@@ -22,7 +22,8 @@ router.get('/reclamations-by-status', reclamationController.getReclamationsBySta
 router.get('/reclamations/:year', reclamationController.getReclamationsByYear);
 
 router.get('/reclamations-count', reclamationController.getReclamationsCount);
-router.get('/reclamations-by-region', reclamationController.getReclamationsByRegion);
+router.get('/reclamations-by-region/:selectedRegion', reclamationController.getReclamationsByRegion);
 router.get('/urgents-reclamations', reclamationController.getTopThreeUrgentsReclamations);
+router.get('/reclmationbyregion/:regionId', reclamationController.getReclamationByRegion);
 
 module.exports = router;

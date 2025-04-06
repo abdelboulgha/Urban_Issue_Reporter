@@ -206,11 +206,11 @@ const Sidebar = ({ isSidebar }) => {
               color={colors.grey[300]}
               sx={{ m: "15px 0 5px 20px" }}
             >
-              Pages
+              {/* Pages */}
             </Typography>
  )}
             {/* Afficher "Ajouter Profil" uniquement si l'utilisateur est superAdmin */}
-            {isSuperAdmin && (
+            {/* {isSuperAdmin && (
               <Item
                 title="Ajouter Profil"
                 to="/form"
@@ -218,7 +218,7 @@ const Sidebar = ({ isSidebar }) => {
                 selected={selected}
                 setSelected={setSelected}
               />
-            )}
+            )} */}
 
             {/* <Item
               title="FAQ Page"

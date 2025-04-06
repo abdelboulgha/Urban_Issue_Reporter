@@ -146,7 +146,7 @@ const getReclamationsCount = async () => {
   }
 };
 
-const getReclamationsByRegion = async () => {
+const getReclamationsByRegion = async (selectedRegion) => {
   try {
     return await reclamationSchema.findAll({
       attributes: ['regionId', [Sequelize.fn('COUNT', Sequelize.col('regionId')), 'count']],
@@ -154,12 +154,30 @@ const getReclamationsByRegion = async () => {
       include: [{
         model: regionSchema,
         attributes: ['nom'] // Assurez-vous que la colonne s'appelle bien 'nom' dans la table Region
-      }]
+      }],
+      where: {
+        region: selectedRegion
+      },
+      
     });
   } catch (error) {
     throw new Error('Erreur lors de la récupération des réclamations par région: ' + error.message);
   }
 };
+
+const getReclamationByRegion = async (regionId) => {
+  try {
+    return await reclamationSchema.findAll({
+      where: { regionId},
+      // include: [{
+      //   model: regionSchema,
+      //   attributes: ['nom'] // Assuming 'nom' is the column name for the region name in regionSchema
+      // }]
+    });
+  } catch (error) {
+    throw new Error('Error fetching reclamations by region: ' + error.message);
+  }
+}
 
 const getTopThreeUrgentsReclamations = async () => {
   try {
@@ -190,5 +208,6 @@ module.exports = {
   getReclamationsByMonth,
   getReclamationsCount,
   getReclamationsByRegion,
-  getTopThreeUrgentsReclamations
+  getTopThreeUrgentsReclamations,
+  getReclamationByRegion
 };

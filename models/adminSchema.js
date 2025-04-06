@@ -33,7 +33,11 @@ const adminSchema = sequelize.define('admin', {
   }, {
     timestamps: false, // Disable createdAt and updatedAt columns
   });
-  adminSchema.belongsTo(Region,{foreignKey:'regionId'});
+  //adminSchema.belongsTo(Region,{foreignKey:'regionId'});
+  adminSchema.belongsTo(Region, { 
+    foreignKey: 'regionId',
+    as: 'Region' // Ceci est optionnel mais recommandé pour la clarté
+  });
   
   // sequelize.sync({ force: false, alter: true })
   //   .then(() => {

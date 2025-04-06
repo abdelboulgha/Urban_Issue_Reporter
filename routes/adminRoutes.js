@@ -6,7 +6,8 @@ const { verifyToken, isSuperAdmin } = require('../middlewares/authMiddleware');
 const citoyenController = require("../controllers/citoyenController");
 
 // Route pour créer un nouvel admin (protégée, seul un superAdmin peut le faire)
-router.post('/admin', isSuperAdmin, adminController.createAdmin);
+router.post('/admin', adminController.createAdmin);
+
 
 // Route pour obtenir tous les admins (protégée, seul un admin connecté peut le faire)
 router.get('/admins', adminController.getAdmins);
@@ -18,7 +19,7 @@ router.get('/admin/:id', adminController.getAdminById);
 router.put('/admin/:id', adminController.updateAdmin);
 
 // Route pour supprimer un admin par son ID (protégée, seul un superAdmin peut le faire)
-router.delete('/admin/:id', isSuperAdmin, adminController.deleteAdmin);
+router.delete('/admin/:id', adminController.deleteAdmin);
 
 router.get("/admins-count", adminController.getAdminsCount);
 
