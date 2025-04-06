@@ -46,6 +46,8 @@ const getAdmins = async (req, res) => {
   }
 };
 
+
+
 // Contrôleur pour obtenir un admin par son ID
 const getAdminById = async (req, res) => {
   try {

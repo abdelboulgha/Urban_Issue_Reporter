@@ -6,10 +6,11 @@ const { verifyToken, isSuperAdmin } = require('../middlewares/authMiddleware');
 const citoyenController = require("../controllers/citoyenController");
 
 // Route pour créer un nouvel admin (protégée, seul un superAdmin peut le faire)
-router.post('/admin', verifyToken, isSuperAdmin, adminController.createAdmin);
+router.post('/admin', isSuperAdmin, adminController.createAdmin);
+
 
 // Route pour obtenir tous les admins (protégée, seul un admin connecté peut le faire)
-router.get('/admins', verifyToken, adminController.getAdmins);
+router.get('/admins', adminController.getAdmins);
 
 // Route pour obtenir un admin par son ID (protégée)
 router.get('/admin/:id', verifyToken, adminController.getAdminById);

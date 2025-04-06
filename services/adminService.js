@@ -68,7 +68,12 @@ const loginAdmin = async (email, password) => {
 const getAdmins = async () => {
   try {
     const admins = await adminSchema.findAll({
-      attributes: { exclude: ['password'] } // Exclure le mot de passe des résultats
+      attributes: { exclude: ['password'] }, // Exclure le mot de passe
+      include: [{
+        model: regionSchema,
+        attributes: ['id', 'nom'], // Inclure seulement l'id et le nom de la région
+        as: 'Region' // Spécifiez l'alias si nécessaire
+      }]
     });
     return admins;
   } catch (error) {

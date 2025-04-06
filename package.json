@@ -21,6 +21,7 @@
     "mysql2": "^3.14.0",
     "pg": "^8.14.1",
     "pg-hstore": "^2.3.4",
+    "postgre": "^0.1.8",
     "postgres": "^3.4.5",
     "react-simple-maps": "^3.0.0",
     "sequelize": "^6.37.6"
