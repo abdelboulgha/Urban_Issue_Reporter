@@ -12,6 +12,7 @@ import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
+import CategoryIcon from "@mui/icons-material/Category";
 
 const Item = ({ title, to, icon, selected, setSelected, onClick }) => {
   const theme = useTheme();
@@ -187,7 +188,7 @@ const Sidebar = ({ isSidebar }) => {
             <Item
               title="Gestion des Catégories"
               to="/categories"
-              icon={<MapIcon />}
+              icon={<CategoryIcon />}
               selected={selected}
               setSelected={setSelected}
             />

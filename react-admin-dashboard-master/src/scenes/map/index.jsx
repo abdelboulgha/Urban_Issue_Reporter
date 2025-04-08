@@ -44,14 +44,15 @@ const Map = () => {
     const loadScriptKey = useRef(Date.now());
     const [selectedReclamation, setSelectedReclamation] = useState(null);
     const [markersReady, setMarkersReady] = useState(false);
-    const [mapType, setMapType] = useState('roadmap'); // 'roadmap' or 'satellite'
+    const [mapType, setMapType] = useState('roadmap');
+    const userData = JSON.parse(localStorage.getItem("userData") || "{}");
 
-    // Status filters - Set only en_attente and en_cours to true by default
+    // Status filters - All status types are true by default
     const [statusFilters, setStatusFilters] = useState({
         en_attente: true,
         en_cours: true,
-        résolue: false,
-        rejetée: false,
+        résolue: true,
+        rejetée: true,
     });
 
     // Parse location string
@@ -81,7 +82,7 @@ const Map = () => {
 
         const fetchData = async () => {
             try {
-                const response = await fetch('http://localhost:3000/api/reclamations');
+                const response = await fetch(`http://localhost:3000/api/all-reclamations-by-region/${userData.id}`);
                 const data = await response.json();
 
                 if (isMounted && data.reclamations) {
@@ -112,7 +113,7 @@ const Map = () => {
 
         fetchData();
         return () => { isMounted = false; };
-    }, [parseLocation]);
+    }, [parseLocation, userData.id]);
 
     // Reset map when route changes
     useEffect(() => {
@@ -188,7 +189,15 @@ const Map = () => {
 
     // Navigate to reclamation details
     const handleViewDetails = (id) => {
+        // Direct navigation without modal confirmation
         navigate(`/reclamation/${id}`);
+        // Close the InfoWindow after navigation
+        setSelectedReclamation(null);
+    };
+
+    // Handle marker click
+    const handleMarkerClick = (reclamation) => {
+        setSelectedReclamation({...reclamation, parsedLocation: reclamation.parsedLocation});
     };
 
     // Filter reclamations based on selected status filters
@@ -256,24 +265,7 @@ const Map = () => {
                                         }}
                                     />
                                 }
-                                label={
-                                    <Box display="flex" alignItems="center">
-                                        <Box
-                                            component="span"
-                                            sx={{
-                                                width: 12,
-                                                height: 12,
-                                                borderRadius: '50%',
-                                                display: 'inline-block',
-                                                mr: 1,
-                                                backgroundColor: status === 'en_attente' ? '#2196f3' :
-                                                    status === 'en_cours' ? '#ffc107' :
-                                                        status === 'résolue' ? '#4caf50' : '#f44336'
-                                            }}
-                                        />
-                                        {statusLabels[status]}
-                                    </Box>
-                                }
+                                label={statusLabels[status]}
                             />
                         ))}
                     </FormGroup>
@@ -375,24 +367,26 @@ const Map = () => {
                                         position={position}
                                         title={reclamation.titre}
                                         icon={statusColors[reclamation.statut] || statusColors.en_attente}
-                                        onClick={() => {
-                                            setSelectedReclamation({...reclamation, parsedLocation: position});
-                                        }}
+                                        onClick={() => handleMarkerClick(reclamation)}
                                     />
                                 );
                             })}
 
                             {selectedReclamation && selectedReclamation.parsedLocation && (
                                 <InfoWindow
+                                    key={`info-${selectedReclamation.id}`}
                                     position={selectedReclamation.parsedLocation}
                                     onCloseClick={() => setSelectedReclamation(null)}
+                                    options={{
+                                        pixelOffset: new window.google.maps.Size(0, -30)
+                                    }}
                                 >
-                                    <Box sx={{
-                                        p: 2,
-                                        maxWidth: 300,
+                                    <div style={{
+                                        padding: '16px',
+                                        maxWidth: '300px',
                                         backgroundColor: colors.primary[400],
                                         borderRadius: '8px',
-                                        boxShadow: theme.shadows[3],
+                                        boxShadow: theme.shadows[3]
                                     }}>
                                         <Typography
                                             variant="h6"
@@ -453,23 +447,15 @@ const Map = () => {
                                                 fontWeight: 'bold',
                                             }}
                                         >
-                                            Voir les détails
+                                            VOIR LES DÉTAILS
                                         </Button>
-                                    </Box>
+                                    </div>
                                 </InfoWindow>
                             )}
                         </GoogleMap>
                     </LoadScript>
                 </div>
             </Box>
-
-            {dataLoaded && (
-                <Box mt={2} textAlign="right">
-                    <Typography variant="body2" color="textSecondary">
-                        {validReclamations.length} réclamations affichées
-                    </Typography>
-                </Box>
-            )}
         </Box>
     );
 };

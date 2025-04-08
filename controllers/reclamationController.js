@@ -138,17 +138,28 @@ const deleteReclamation = async (req, res) => {
 
 const getReclamationsByStatus = async (req, res) => {
   try {
-    const statusData = await reclamationService.getReclamationsByStatus();
+    const adminId = req.params.adminId; // Get adminId from the URL parameter
+
+    if (!adminId) {
+      return res.status(400).json({ message: 'Admin ID is required' });
+    }
+
+    // Fetch reclamations by status based on admin's region or all regions if superAdmin
+    const statusData = await reclamationService.getReclamationsByStatus(adminId);
+
     res.status(200).json({ message: 'Données des réclamations par statut récupérées', data: statusData });
   } catch (error) {
     res.status(500).json({ message: 'Erreur lors de la récupération des données', error: error.message });
   }
 };
 
+
 const getReclamationsByYear = async (req, res) => {
-  const { year } = req.params; // Get year from the request URL
+  const { adminId, year } = req.params; // Get adminId first, then year
   try {
-    const reclamations = await reclamationService.getReclamationsByMonth(year);
+    // Fetch the reclamations by month, considering the admin's region or all regions if superAdmin
+    const reclamations = await reclamationService.getReclamationsByMonth(adminId, year);
+
     res.status(200).json({
       message: 'Réclamations par mois récupérées avec succès',
       data: reclamations,
@@ -161,14 +172,25 @@ const getReclamationsByYear = async (req, res) => {
   }
 };
 
+
 const getReclamationsCount = async (req, res) => {
   try {
-    const countData = await reclamationService.getReclamationsCount();
+    // Get adminId from the URL parameter
+    const adminId = req.params.adminId;
+
+    if (!adminId) {
+      return res.status(400).json({ message: 'Admin ID is required' });
+    }
+
+    // Call the service to get the reclamation count
+    const countData = await reclamationService.getReclamationsCount(adminId);
+
     res.status(200).json({ message: 'Nombre total de réclamations récupéré', data: countData });
   } catch (error) {
     res.status(500).json({ message: 'Erreur lors de la récupération du nombre total de réclamations', error: error.message });
   }
 };
+
 const getReclamationsByRegion = async (req, res) => {
   try {
     const data = await reclamationService.getReclamationsByRegion();
@@ -187,13 +209,19 @@ const getReclamationsByRegion = async (req, res) => {
 
 const getTopThreeUrgentsReclamations = async (req, res) => {
   try {
-    const topReclamations = await reclamationService.getTopThreeUrgentsReclamations();
+    const adminId = req.params.adminId; // Get adminId from the URL parameter
+
+    if (!adminId) {
+      return res.status(400).json({ message: 'Admin ID is required' });
+    }
+
+    // Fetch top 3 urgent reclamations based on admin's region or all regions if superAdmin
+    const topReclamations = await reclamationService.getTopThreeUrgentsReclamations(adminId);
 
     // Function to format the date in "jour mois année" format (in French)
     const formatDate = (date) => {
       const options = { year: 'numeric', month: 'long', day: 'numeric' };
-      const formattedDate = new Date(date).toLocaleDateString('fr-FR', options);
-      return formattedDate;
+      return new Date(date).toLocaleDateString('fr-FR', options);
     };
 
     // Formatting data to include region name properly and formatted date
@@ -204,7 +232,6 @@ const getTopThreeUrgentsReclamations = async (req, res) => {
       statut: item.statut,
       nombre_de_votes: item.nombre_de_votes,
       localisation: item.localisation,
-      // Format the date in "jour mois année"
       date_de_creation: formatDate(item.date_de_creation),
       region: item.region.nom, // Assuming region name is stored in 'nom' column
     }));
@@ -214,6 +241,24 @@ const getTopThreeUrgentsReclamations = async (req, res) => {
     res.status(500).json({ message: 'Error fetching top 3 reclamations', error: error.message });
   }
 };
+
+const getAllReclamationsByRegion = async (req, res) => {
+  const { adminId } = req.params; // Get adminId from the request URL
+  try {
+    const reclamations = await reclamationService.getAllReclamationsByRegion(adminId);
+    res.status(200).json({
+      message: 'Réclamations récupérées avec succès',
+      reclamations: reclamations,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Erreur lors de la récupération des réclamations',
+      error: error.message,
+    });
+  }
+};
+
+
 
 
 module.exports = {
@@ -226,5 +271,6 @@ module.exports = {
   getReclamationsByYear,
   getReclamationsCount,
   getReclamationsByRegion,
-  getTopThreeUrgentsReclamations
+  getTopThreeUrgentsReclamations,
+  getAllReclamationsByRegion
 };

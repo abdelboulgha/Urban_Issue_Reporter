@@ -20,38 +20,32 @@ const Dashboard = () => {
     const theme = useTheme();
     const navigate = useNavigate();
     const colors = tokens(theme.palette.mode);
-    const [userData, setUserData] = useState(null);
+    const userData = JSON.parse(localStorage.getItem("userData"));
     const [totalAdmins, setTotalAdmins] = useState(0);
     const [totalCitoyens, setTotalCitoyens] = useState(0);
     const [totalReclamations, setTotalReclamations] = useState(0);
     const [totalRegions, setTotalRegions] = useState(0);
     const [urgentsReclamation, setUrgentsReclamation] = useState([]);
+    const userRole = localStorage.getItem("userRole");
+    const isSuperAdmin = userRole === 'true';
+    console.log(isSuperAdmin);
 
 
     useEffect(() => {
-        const userDataString = localStorage.getItem("userData");
 
 
-        if (userDataString) {
-            try {
-                setUserData(JSON.parse(userDataString));
-            } catch (e) {
-                console.error(
-                    "Erreur lors de la récupération des données utilisateur:",
-                    e
-                );
-            }
-        }
     }, []);
 
     const getAdminsCount = async () => {
-        await axios.get("http://localhost:3000/api/admins-count")
+        await axios.get(`http://localhost:3000/api/admins-count/`)
             .then(response => {
                 setTotalAdmins(response.data.data.totalAdmins);
             })
             .catch(error => {
                 console.error("Erreur lors de la récupération du nombre d'admins :", error);
             });
+
+
     }
 
     const getCitoyensCount = async () => {
@@ -64,8 +58,8 @@ const Dashboard = () => {
             });
     }
 
-    const getReclamationsCount = async () => {
-        await axios.get("http://localhost:3000/api/reclamations-count")
+    const getReclamationsCount = async (id) => {
+        await axios.get(`http://localhost:3000/api/reclamations-count/${id}`)
             .then(response => {
                 setTotalReclamations(response.data.data.totalReclamations);
             })
@@ -74,8 +68,8 @@ const Dashboard = () => {
             });
     }
 
-    const getUrgentsReclamations = async () => {
-        await axios.get("http://localhost:3000/api/urgents-reclamations")
+    const getUrgentsReclamations = async (id) => {
+        await axios.get(`http://localhost:3000/api/urgents-reclamations/${id}`)
             .then(response => {
                 setUrgentsReclamation(response.data.data);
             })
@@ -96,17 +90,17 @@ const Dashboard = () => {
 
     useEffect(() => {
         getAdminsCount();
-        getReclamationsCount();
+        getReclamationsCount(userData.id);
         getCitoyensCount();
         getRegionsCount();
-        getUrgentsReclamations()
+        getUrgentsReclamations(userData.id)
 
     }, []);
     // console.log(totalCitoyens);
     // console.log(totalAdmins);
     // console.log(totalReclamations);
     // console.log(totalRegions);
-    console.log(urgentsReclamation);
+    // console.log(urgentsReclamation);
 
     return (
         // Container with scrollbar
@@ -353,7 +347,7 @@ const Dashboard = () => {
 
                     {/* ROW 3 */}
                     <Box
-                        gridColumn="span 4"
+                        gridColumn={isSuperAdmin ? "span 4" : "span 7"}
                         gridRow="span 2"
                         backgroundColor={colors.primary[400]}
                         p="30px"
@@ -367,20 +361,23 @@ const Dashboard = () => {
                             <DoughnutChart isDashboard={true}/>
                         </Box>
                     </Box>
-                    <Box
-                        gridColumn="span 4"
-                        gridRow="span 2"
-                        backgroundColor={colors.primary[400]}
-                        display="flex"
-                        flexDirection="column"
-                        alignItems="center"
-                        paddingX="10px"
-                        paddingY="30px"
-                    >
+                    {isSuperAdmin && (
+                        <Box
+                            gridColumn="span 4"
+                            gridRow="span 2"
+                            backgroundColor={colors.primary[400]}
+                            display="flex"
+                            flexDirection="column"
+                            alignItems="center"
+                            paddingX="10px"
+                            paddingY="30px"
+                        >
                             <BarChart isDashboard={true}/>
-                    </Box>
+                        </Box>
+                    )}
+
                     <Box
-                        gridColumn="span 4"
+                        gridColumn={isSuperAdmin ? "span 4" : "span 5"}
                         gridRow="span 2"
                         padding="30px"
                         onClick={() => navigate("/map")}

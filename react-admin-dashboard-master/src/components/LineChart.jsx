@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react';
-import {Line} from 'react-chartjs-2';
+import React, { useEffect, useState } from 'react';
+import { Line } from 'react-chartjs-2';
 import axios from 'axios';
 import {
     Chart as ChartJS,
@@ -11,15 +11,16 @@ import {
     Tooltip,
     Legend
 } from 'chart.js';
-import {Box, TextField, Button} from '@mui/material';
+import { Box, TextField } from '@mui/material';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-const LineChar = ({isDashboard = false}) => {
+const LineChar = ({ isDashboard = false }) => {
     const [chartData, setChartData] = useState(null);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [loading, setLoading] = useState(false);
-
+    const [totalReclamations, setTotalReclamations] = useState(0);
+    const userData = JSON.parse(localStorage.getItem("userData"));// Add state for total reclamations
 
     // French month names
     const frenchMonths = [
@@ -31,14 +32,18 @@ const LineChar = ({isDashboard = false}) => {
     const fetchData = async (year) => {
         setLoading(true);
         try {
-            const response = await axios.get(`http://localhost:3000/api/reclamations/${year}`);
+            const response = await axios.get(`http://localhost:3000/api/reclamations-by-year/${userData.id}/${year}`);
             const data = response.data.data;
 
+            // Calculate total reclamations
+            const total = data.reduce((acc, item) => acc + parseInt(item.count, 10), 0); // Convert count to number
+            setTotalReclamations(total); // Update total reclamations state
+
             // Format data for the chart
-            const months = Array.from({length: 12}, (_, i) => i + 1);
+            const months = Array.from({ length: 12 }, (_, i) => i + 1);
             const counts = months.map(month => {
-                const monthData = data.find(item => item.month === month);
-                return monthData ? monthData.count : 0; // Set 0 if no complaints for that month
+                const monthData = data.find(item => parseInt(item.month, 10) === month); // Convert month to number
+                return monthData ? parseInt(monthData.count, 10) : 0; // Convert count to number
             });
 
             setChartData({
@@ -60,13 +65,9 @@ const LineChar = ({isDashboard = false}) => {
         }
     };
 
-
-
     useEffect(() => {
         fetchData(selectedYear);
     }, [selectedYear]);
-
-
 
     return (
         <Box sx={{
@@ -84,9 +85,14 @@ const LineChar = ({isDashboard = false}) => {
                     mb: 1
                 }}
             >
-                <h3 style={{margin: isDashboard ? '0 0 8px 0' : '0'}}>
+                <h3 style={{ margin: isDashboard ? '0 0 8px 0' : '0' }}>
                     Réclamations pour {selectedYear}
                 </h3>
+
+                {/* Total Reclamations Subtitle */}
+                <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
+                    Total réclamations: {totalReclamations}
+                </p>
 
                 <TextField
                     label="Année"

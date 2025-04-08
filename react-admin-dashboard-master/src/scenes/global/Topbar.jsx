@@ -26,6 +26,7 @@ const Topbar = () => {
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const userData = JSON.parse(localStorage.getItem("userData"));
 
   const fetchAdminData = async () => {
     try {
@@ -40,7 +41,8 @@ const Topbar = () => {
       
       // 2. Prenez le premier admin comme exemple
       if (response.data.admins && response.data.admins.length > 0) {
-        const firstAdmin = response.data.admins[0];
+        const firstAdmin = response.data.admins.find(admin => admin.id === userData.id);
+
         setAdmin({
           ...firstAdmin,
           region: firstAdmin.Region?.nom || "Non assigné"

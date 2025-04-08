@@ -17,12 +17,13 @@ router.put('/reclamation/:id', reclamationController.updateReclamation);
 // Route to delete a specific reclamation by ID
 router.delete('/reclamation/:id', reclamationController.deleteReclamation);
 
-router.get('/reclamations-by-status', reclamationController.getReclamationsByStatus);
+router.get('/reclamations-by-status/:adminId', reclamationController.getReclamationsByStatus);
 
-router.get('/reclamations/:year', reclamationController.getReclamationsByYear);
+router.get('/reclamations-by-year/:adminId/:year', reclamationController.getReclamationsByYear);
 
-router.get('/reclamations-count', reclamationController.getReclamationsCount);
+router.get('/reclamations-count/:adminId', reclamationController.getReclamationsCount);
 router.get('/reclamations-by-region', reclamationController.getReclamationsByRegion);
-router.get('/urgents-reclamations', reclamationController.getTopThreeUrgentsReclamations);
+router.get('/urgents-reclamations/:adminId', reclamationController.getTopThreeUrgentsReclamations);
+router.get('/all-reclamations-by-region/:adminId', reclamationController.getAllReclamationsByRegion);
 
 module.exports = router;
