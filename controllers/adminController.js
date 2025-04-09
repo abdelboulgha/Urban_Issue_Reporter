@@ -9,11 +9,11 @@ const createAdmin = async (req, res) => {
     const { nom, prenom, email, password, superAdmin,regionId } = req.body;
 
     // Vérifier si l'utilisateur courant est un superAdmin (seul un superAdmin peut créer d'autres superAdmins)
-    if (superAdmin && (!req.user || !req.user.superAdmin)) {
-      return res.status(403).json({
-        message: 'Seul un superAdmin peut créer un autre superAdmin'
-      });
-    }
+    // if (superAdmin && (!req.user || !req.user.superAdmin)) {
+    //   return res.status(403).json({
+    //     message: 'Seul un superAdmin peut créer un autre superAdmin'
+    //   });
+    // }
 
     const result = await adminService.createAdmin({ nom, prenom, email, password, superAdmin,regionId });
 
@@ -74,18 +74,18 @@ const updateAdmin = async (req, res) => {
     const { nom, prenom, email, password, superAdmin ,regionId } = req.body;
 
     // Vérifier si l'utilisateur essaie de modifier un autre admin
-    if (req.user.id != id && !req.user.superAdmin) {
-      return res.status(403).json({
-        message: 'Vous n\'avez pas le droit de modifier cet admin'
-      });
-    }
+    // if (req.user.id != id && !req.user.superAdmin) {
+    //   return res.status(403).json({
+    //     message: 'Vous n\'avez pas le droit de modifier cet admin'
+    //   });
+    // }
 
     // Seul un superAdmin peut promouvoir un autre admin en superAdmin
-    if (superAdmin && !req.user.superAdmin) {
-      return res.status(403).json({
-        message: 'Seul un superAdmin peut promouvoir un admin en superAdmin'
-      });
-    }
+    // if (superAdmin && !req.user.superAdmin) {
+    //   return res.status(403).json({
+    //     message: 'Seul un superAdmin peut promouvoir un admin en superAdmin'
+    //   });
+    // }
 
     const updatedAdmin = await adminService.updateAdmin(id, { nom, prenom, email, password, superAdmin , regionId});
 
@@ -103,23 +103,25 @@ const updateAdmin = async (req, res) => {
 
 // Contrôleur pour supprimer un admin
 const deleteAdmin = async (req, res) => {
+  const id = req.params.id;
   try {
-    const { id } = req.params;
+    
+    
     
     // Vérifier si l'utilisateur essaie de se supprimer lui-même
-    if (req.user.id == id) {
-      return res.status(400).json({
-        message: 'Vous ne pouvez pas supprimer votre propre compte'
-      });
-    }
+    // if (req.user.id == id) {
+    //   return res.status(400).json({
+    //     message: 'Vous ne pouvez pas supprimer votre propre compte'
+    //   });
+    // }
     
     // Vérifier si l'utilisateur a les droits pour supprimer un admin
-    if (!req.user.superAdmin) {
-      return res.status(403).json({
-        message: 'Seul un superAdmin peut supprimer un admin'
-      });
-    }
-
+    // if (!req.user.superAdmin) {
+    //   return res.status(403).json({
+    //     message: 'Seul un superAdmin peut supprimer un admin'
+    //   });
+    // }
+    
     const result = await adminService.deleteAdmin(id);
 
     res.status(200).json({

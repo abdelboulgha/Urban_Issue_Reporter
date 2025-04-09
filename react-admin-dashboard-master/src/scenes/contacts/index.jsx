@@ -1,12 +1,12 @@
-import { 
-  Box, 
-  Button, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  TextField, 
-  Snackbar, 
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Snackbar,
   Alert,
   Typography,
   CircularProgress,
@@ -47,10 +47,10 @@ const AdminContacts = () => {
     password: '',
     regionId: null
   });
-  const [snackbar, setSnackbar] = useState({ 
-    open: false, 
-    message: "", 
-    severity: "success" 
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success"
   });
   const [processing, setProcessing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -63,7 +63,7 @@ const AdminContacts = () => {
           axios.get('http://localhost:3000/api/admins'),
           axios.get('http://localhost:3000/api/regions')
         ]);
-        
+
         setAdmins(adminsResponse.data.admins || []);
         setRegions(regionsResponse.data.regions || []);
       } catch (error) {
@@ -74,7 +74,7 @@ const AdminContacts = () => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
 
@@ -115,7 +115,7 @@ const AdminContacts = () => {
   const handleEditSubmit = async () => {
     try {
       setProcessing(true);
-      
+
       const dataToSend = {
         nom: formData.nom,
         prenom: formData.prenom,
@@ -123,12 +123,12 @@ const AdminContacts = () => {
         superAdmin: formData.superAdmin,
         regionId: formData.regionId
       };
-      
+
       if (formData.password) {
         dataToSend.password = formData.password;
       }
 
-      await axios.put(`http://localhost:3000/api/admins/${currentAdmin.id}`, dataToSend);
+      await axios.put(`http://localhost:3000/api/admin/${currentAdmin.id}`, dataToSend);
       showSnackbar("Personnel modifié avec succès", "success");
       const response = await axios.get('http://localhost:3000/api/admins');
       setAdmins(response.data.admins || []);
@@ -145,7 +145,7 @@ const AdminContacts = () => {
   const handleAddSubmit = async () => {
     try {
       setProcessing(true);
-      await axios.post('http://localhost:3000/api/admins', formData);
+      await axios.post('http://localhost:3000/api/admin', formData);
       showSnackbar("Personnel ajouté avec succès", "success");
       const response = await axios.get('http://localhost:3000/api/admins');
       setAdmins(response.data.admins || []);
@@ -161,8 +161,9 @@ const AdminContacts = () => {
 
   const handleDeleteConfirm = async () => {
     try {
+      console.log("Deleting admin:", currentAdmin.id);
       setProcessing(true);
-      await axios.delete(`http://localhost:3000/api/admins/${currentAdmin.id}`);
+      await axios.delete(`http://localhost:3000/api/admin/${currentAdmin.id}`);
       showSnackbar("Personnel supprimé avec succès", "success");
       const response = await axios.get('http://localhost:3000/api/admins');
       setAdmins(response.data.admins || []);
@@ -213,8 +214,8 @@ const AdminContacts = () => {
       flex: 1,
       valueGetter: (params) => {
         // Vérifie plusieurs façons d'accéder au nom de la région
-        return params.row.Region?.nom || 
-               regions.find(r => r.id === params.row.regionId)?.nom || 
+        return params.row.Region?.nom ||
+               regions.find(r => r.id === params.row.regionId)?.nom ||
                "Non assigné";
       },
     },
@@ -257,7 +258,7 @@ const AdminContacts = () => {
               "&:hover": { backgroundColor: colors.blueAccent[700] }
             }}
           >
-            Modifier
+
           </Button>
           <Button
             variant="contained"
@@ -270,7 +271,7 @@ const AdminContacts = () => {
               "&:hover": { backgroundColor: colors.redAccent[800] }
             }}
           >
-            Supprimer
+
           </Button>
         </Box>
       ),
@@ -296,11 +297,11 @@ const AdminContacts = () => {
   return (
     <Box sx={{ height: "100vh", overflow: "auto" }}>
       <Box m="20px">
-        <Header 
-          title="PERSONNELS" 
-          subtitle={`Liste des personnels (${admins.length})`} 
+        <Header
+          title="PERSONNELS"
+          subtitle={`Liste des personnels (${admins.length})`}
         />
-        
+
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
           <Button
             variant="contained"
@@ -453,16 +454,16 @@ const AdminContacts = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button 
-            onClick={() => setAddOpen(false)} 
+          <Button
+            onClick={() => setAddOpen(false)}
             variant="outlined"
             disabled={processing}
           >
             Annuler
           </Button>
-          <Button 
-            onClick={handleAddSubmit} 
-            variant="contained" 
+          <Button
+            onClick={handleAddSubmit}
+            variant="contained"
             color="primary"
             disabled={processing}
             sx={{ ml: 2 }}
@@ -560,16 +561,16 @@ const AdminContacts = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button 
-            onClick={() => setEditOpen(false)} 
+          <Button
+            onClick={() => setEditOpen(false)}
             variant="outlined"
             disabled={processing}
           >
             Annuler
           </Button>
-          <Button 
-            onClick={handleEditSubmit} 
-            variant="contained" 
+          <Button
+            onClick={handleEditSubmit}
+            variant="contained"
             color="primary"
             disabled={processing}
             sx={{ ml: 2 }}
@@ -593,16 +594,16 @@ const AdminContacts = () => {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button 
-            onClick={() => setDeleteOpen(false)} 
+          <Button
+            onClick={() => setDeleteOpen(false)}
             variant="outlined"
             disabled={processing}
           >
             Annuler
           </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            variant="contained" 
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
             color="error"
             disabled={processing}
             sx={{ ml: 2 }}
@@ -619,8 +620,8 @@ const AdminContacts = () => {
         onClose={() => setSnackbar({...snackbar, open: false})}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert 
-          onClose={() => setSnackbar({...snackbar, open: false})} 
+        <Alert
+          onClose={() => setSnackbar({...snackbar, open: false})}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
           variant="filled"
