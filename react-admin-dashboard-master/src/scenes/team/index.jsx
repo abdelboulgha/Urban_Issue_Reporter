@@ -15,7 +15,7 @@ import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/ap
 
 // Déplacer la clé API dans une variable d'environnement ou un fichier de configuration
 // Utilisation de process.env.REACT_APP_GOOGLE_MAPS_API_KEY si vous êtes sur Create React App
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "YOUR_API_KEY";
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "AIzaSyAJKMagO0Asw6OgccvD_PcdJxvOWLuE3Vc";
 
 const containerStyle = {
   width: "100%",
@@ -175,8 +175,8 @@ const Reclamations = () => {
           // Compter les réclamations par statut
           const enAttente = categoryReclamations.filter(rec => rec.statut === 'en_attente').length;
           const enCours = categoryReclamations.filter(rec => rec.statut === 'en_cours').length;
-          const resolu = categoryReclamations.filter(rec => rec.statut === 'resolu').length;
-          const rejete = categoryReclamations.filter(rec => rec.statut === 'rejete').length;
+          const resolu = categoryReclamations.filter(rec => rec.statut === 'résolue').length;
+          const rejete = categoryReclamations.filter(rec => rec.statut === 'rejetée').length;
           
           stats[category.id] = {
             total: categoryReclamations.length,

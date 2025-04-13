@@ -1,34 +1,67 @@
 import { Box, useTheme, CircularProgress, Typography, FormControl, FormGroup, FormControlLabel, Checkbox, Button, IconButton } from "@mui/material";
-import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { GoogleMap, useLoadScript, Marker, InfoWindow } from "@react-google-maps/api";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
 import { tokens } from "../../theme";
 import SatelliteIcon from '@mui/icons-material/Satellite';
 import MapIcon from '@mui/icons-material/Map';
 
-const containerStyle = {
+// Constants moved outside component to prevent recreation
+const GOOGLE_MAPS_API_KEY = "AIzaSyAJKMagO0Asw6OgccvD_PcdJxvOWLuE3Vc";
+const API_BASE_URL = "http://localhost:3000/api";
+
+// Define libraries as a constant outside the component to avoid recreating the array on each render
+const GOOGLE_MAPS_LIBRARIES = ["places"];
+
+const MAP_CONTAINER_STYLE = {
     width: '100%',
     height: '100%',
 };
 
-const defaultCenter = {
+const DEFAULT_CENTER = {
     lat: 33.589886,
     lng: -7.603869,
 };
 
-const statusColors = {
+const STATUS_MARKERS = {
     en_attente: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
     en_cours: "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png",
     résolue: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
     rejetée: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
 };
 
-const statusLabels = {
+const STATUS_LABELS = {
     en_attente: "En attente",
     en_cours: "En cours",
     résolue: "Résolu",
     rejetée: "Rejeté",
+};
+
+const STATUS_COLORS = {
+    en_attente: '#2196f3',
+    en_cours: '#ffc107',
+    résolue: '#4caf50',
+    rejetée: '#f44336'
+};
+
+// Parse location helper function (moved outside component)
+const parseLocation = (locationStr) => {
+    if (!locationStr) return null;
+    try {
+        const locString = String(locationStr).trim();
+        const [lat, lng] = locString.split(',').map(coord => parseFloat(coord.trim()));
+
+        if (isNaN(lat) || isNaN(lng)) {
+            console.error("Invalid location format:", locationStr);
+            return null;
+        }
+
+        return { lat, lng };
+    } catch (error) {
+        console.error("Error parsing location:", error, "for string:", locationStr);
+        return null;
+    }
 };
 
 const Map = () => {
@@ -36,18 +69,14 @@ const Map = () => {
     const colors = tokens(theme.palette.mode);
     const location = useLocation();
     const navigate = useNavigate();
-    const [reclamations, setReclamations] = useState([]);
-    const [center, setCenter] = useState(defaultCenter);
-    const [mapReady, setMapReady] = useState(false);
-    const [dataLoaded, setDataLoaded] = useState(false);
     const mapRef = useRef(null);
-    const loadScriptKey = useRef(Date.now());
-    const [selectedReclamation, setSelectedReclamation] = useState(null);
-    const [markersReady, setMarkersReady] = useState(false);
-    const [mapType, setMapType] = useState('roadmap');
-    const userData = JSON.parse(localStorage.getItem("userData") || "{}");
 
-    // Status filters - All status types are true by default
+    // State management
+    const [reclamations, setReclamations] = useState([]);
+    const [center, setCenter] = useState(DEFAULT_CENTER);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedReclamation, setSelectedReclamation] = useState(null);
+    const [mapType, setMapType] = useState('roadmap');
     const [statusFilters, setStatusFilters] = useState({
         en_attente: true,
         en_cours: true,
@@ -55,100 +84,68 @@ const Map = () => {
         rejetée: true,
     });
 
-    // Parse location string
-    const parseLocation = useCallback((locationStr) => {
-        if (!locationStr) return null;
-        try {
-            const locString = String(locationStr).trim();
-            const [lat, lng] = locString.split(',').map(coord => parseFloat(coord.trim()));
+    // Use react-google-maps useLoadScript hook with static libraries array
+    const { isLoaded: isMapLibraryLoaded } = useLoadScript({
+        googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+        libraries: GOOGLE_MAPS_LIBRARIES, // Using the constant array defined outside
+    });
 
-            if (isNaN(lat) || isNaN(lng)) {
-                console.error("Invalid location format:", locationStr);
-                return null;
-            }
+    // Get user data once
+    const userData = useMemo(() => JSON.parse(localStorage.getItem("userData") || "{}"), []);
 
-            return { lat, lng };
-        } catch (error) {
-            console.error("Error parsing location:", error, "for string:", locationStr);
-            return null;
-        }
-    }, []);
-
-    // Fetch data
+    // Fetch reclamations data
     useEffect(() => {
         let isMounted = true;
-        setDataLoaded(false);
-        setMarkersReady(false);
+        setIsLoading(true);
 
-        const fetchData = async () => {
+        const fetchReclamations = async () => {
             try {
-                const response = await fetch(`http://localhost:3000/api/all-reclamations-by-region/${userData.id}`);
+                const response = await fetch(`${API_BASE_URL}/all-reclamations-by-region/${userData.id}`);
+
+                if (!response.ok) {
+                    throw new Error(`API responded with status: ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 if (isMounted && data.reclamations) {
+                    // Process reclamations and add parsed locations
                     const processedReclamations = data.reclamations.map(rec => ({
                         ...rec,
                         parsedLocation: parseLocation(rec.localisation)
-                    }));
+                    })).filter(rec => rec.parsedLocation !== null); // Only keep records with valid locations
 
                     setReclamations(processedReclamations);
 
                     // Find first valid location for center (prioritize active reclamations)
                     const firstValidRec = processedReclamations.find(rec =>
                         rec.parsedLocation && (rec.statut === 'en_attente' || rec.statut === 'en_cours')
-                    ) || processedReclamations.find(rec => rec.parsedLocation);
+                    ) || processedReclamations[0];
 
-                    if (firstValidRec) {
+                    if (firstValidRec?.parsedLocation) {
                         setCenter(firstValidRec.parsedLocation);
                     }
                 }
             } catch (error) {
-                console.error("Fetch error:", error);
+                console.error("Failed to fetch reclamations:", error);
             } finally {
                 if (isMounted) {
-                    setDataLoaded(true);
+                    setIsLoading(false);
                 }
             }
         };
 
-        fetchData();
-        return () => { isMounted = false; };
-    }, [parseLocation, userData.id]);
+        fetchReclamations();
 
-    // Reset map when route changes
+        return () => {
+            isMounted = false;
+        };
+    }, [userData.id]);
+
+    // Reset selection when route changes
     useEffect(() => {
-        loadScriptKey.current = Date.now();
-        setMapReady(false);
-        setMarkersReady(false);
         setSelectedReclamation(null);
     }, [location.pathname]);
-
-    // Trigger markers render after map is ready and data is loaded
-    useEffect(() => {
-        if (mapReady && dataLoaded && !markersReady) {
-            const timer = setTimeout(() => {
-                setMarkersReady(true);
-                if (mapRef.current) {
-                    window.dispatchEvent(new Event('resize'));
-                }
-            }, 500);
-
-            return () => clearTimeout(timer);
-        }
-    }, [mapReady, dataLoaded, markersReady]);
-
-    // Handle map load
-    const handleMapLoad = useCallback((map) => {
-        mapRef.current = map;
-        setMapReady(true);
-
-        setTimeout(() => {
-            if (mapRef.current) {
-                window.dispatchEvent(new Event('resize'));
-                mapRef.current.setCenter(center);
-            }
-        }, 100);
-    }, [center]);
 
     // Force resize when tab becomes visible
     useEffect(() => {
@@ -156,7 +153,7 @@ const Map = () => {
             if (document.visibilityState === 'visible' && mapRef.current) {
                 setTimeout(() => {
                     window.dispatchEvent(new Event('resize'));
-                    mapRef.current.setCenter(center);
+                    mapRef.current.panTo(center);
                 }, 300);
             }
         };
@@ -165,50 +162,69 @@ const Map = () => {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [center]);
 
+    // Handle map load
+    const handleMapLoad = useCallback((map) => {
+        mapRef.current = map;
+
+        // Ensure proper sizing and centering
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+            if (mapRef.current) {
+                mapRef.current.panTo(center);
+            }
+        }, 100);
+    }, [center]);
+
     // Handle status filter change
-    const handleStatusFilterChange = (status) => {
+    const handleStatusFilterChange = useCallback((status) => {
         setStatusFilters(prev => ({
             ...prev,
             [status]: !prev[status]
         }));
-    };
+    }, []);
 
     // Handle "Select All" and "Unselect All" functionality
-    const handleSelectAllStatuses = (selectAll) => {
+    const handleSelectAllStatuses = useCallback((selectAll) => {
         const newValues = {};
         Object.keys(statusFilters).forEach(status => {
             newValues[status] = selectAll;
         });
         setStatusFilters(newValues);
-    };
+    }, [statusFilters]);
 
     // Toggle map type
-    const toggleMapType = () => {
+    const toggleMapType = useCallback(() => {
         setMapType(prev => prev === 'roadmap' ? 'satellite' : 'roadmap');
-    };
+    }, []);
 
     // Navigate to reclamation details
-    const handleViewDetails = (id) => {
-        // Direct navigation without modal confirmation
+    const handleViewDetails = useCallback((id) => {
         navigate(`/reclamation/${id}`);
-        // Close the InfoWindow after navigation
         setSelectedReclamation(null);
-    };
+    }, [navigate]);
 
-    // Handle marker click
-    const handleMarkerClick = (reclamation) => {
-        setSelectedReclamation({...reclamation, parsedLocation: reclamation.parsedLocation});
-    };
+    // Handle marker click - simplified to prevent double InfoWindows
+    const handleMarkerClick = useCallback((reclamation) => {
+        setSelectedReclamation(reclamation);
+    }, []);
 
-    // Filter reclamations based on selected status filters
-    const filteredReclamations = reclamations.filter(
-        reclamation => statusFilters[reclamation.statut]
+    // Memoize filtered reclamations to avoid unnecessary recalculation
+    const filteredReclamations = useMemo(() =>
+            reclamations
+                .filter(reclamation => statusFilters[reclamation.statut]),
+        [reclamations, statusFilters]
     );
 
-    // Verify we have valid reclamations to display
-    const validReclamations = filteredReclamations.filter(
-        rec => rec.parsedLocation
-    );
+    // Check if we have valid reclamations after filtering
+    const hasNoReclamationsToShow = !isLoading && filteredReclamations.length === 0;
+
+    // Memoize map options to prevent rerenders
+    const mapOptions = useMemo(() => ({
+        disableDefaultUI: true,
+        zoomControl: true,
+        mapTypeId: mapType,
+        fullscreenControl: true,
+    }), [mapType]);
 
     return (
         <Box m="20px">
@@ -249,23 +265,21 @@ const Map = () => {
 
                 <FormControl component="fieldset">
                     <FormGroup row>
-                        {Object.keys(statusFilters).map(status => (
+                        {Object.entries(statusFilters).map(([status, checked]) => (
                             <FormControlLabel
                                 key={status}
                                 control={
                                     <Checkbox
-                                        checked={statusFilters[status]}
+                                        checked={checked}
                                         onChange={() => handleStatusFilterChange(status)}
                                         sx={{
                                             '&.Mui-checked': {
-                                                color: status === 'en_attente' ? '#2196f3' :
-                                                    status === 'en_cours' ? '#ffc107' :
-                                                        status === 'résolue' ? '#4caf50' : '#f44336'
+                                                color: STATUS_COLORS[status]
                                             }
                                         }}
                                     />
                                 }
-                                label={statusLabels[status]}
+                                label={STATUS_LABELS[status]}
                             />
                         ))}
                     </FormGroup>
@@ -282,7 +296,8 @@ const Map = () => {
                     position: 'relative',
                 }}
             >
-                {(!dataLoaded || !mapReady) && (
+                {/* Loading state */}
+                {isLoading && (
                     <Box sx={{
                         position: 'absolute',
                         top: 0,
@@ -297,12 +312,13 @@ const Map = () => {
                     }}>
                         <CircularProgress />
                         <Typography variant="body1" sx={{ ml: 2 }}>
-                            {!dataLoaded ? "Chargement des données..." : "Initialisation de la carte..."}
+                            Chargement des données...
                         </Typography>
                     </Box>
                 )}
 
-                {validReclamations.length === 0 && dataLoaded && mapReady && (
+                {/* No reclamations message */}
+                {hasNoReclamationsToShow && (
                     <Box sx={{
                         position: 'absolute',
                         top: 0,
@@ -325,22 +341,16 @@ const Map = () => {
                     </Box>
                 )}
 
-                <div style={{ width: '100%', height: '100%', visibility: mapReady ? 'visible' : 'hidden' }}>
-                    <LoadScript
-                        googleMapsApiKey="AIzaSyAJKMagO0Asw6OgccvD_PcdJxvOWLuE3Vc"
-                        key={loadScriptKey.current}
-                    >
+                {/* Map container */}
+                <div style={{ width: '100%', height: '100%', visibility: isMapLibraryLoaded ? 'visible' : 'hidden' }}>
+                    {isMapLibraryLoaded && (
                         <GoogleMap
-                            mapContainerStyle={containerStyle}
+                            mapContainerStyle={MAP_CONTAINER_STYLE}
                             center={center}
                             zoom={10}
                             onLoad={handleMapLoad}
                             onUnmount={() => mapRef.current = null}
-                            options={{
-                                disableDefaultUI: true,
-                                zoomControl: true,
-                                mapTypeId: mapType,
-                            }}
+                            options={mapOptions}
                         >
                             {/* Map type toggle button */}
                             <Box sx={{
@@ -357,24 +367,20 @@ const Map = () => {
                                 </IconButton>
                             </Box>
 
-                            {(markersReady || dataLoaded) && validReclamations.map((reclamation, index) => {
-                                const position = reclamation.parsedLocation;
-                                if (!position) return null;
+                            {/* Markers */}
+                            {filteredReclamations.map((reclamation) => (
+                                <Marker
+                                    key={`marker-${reclamation.id}`}
+                                    position={reclamation.parsedLocation}
+                                    title={reclamation.titre}
+                                    icon={STATUS_MARKERS[reclamation.statut]}
+                                    onClick={() => handleMarkerClick(reclamation)}
+                                />
+                            ))}
 
-                                return (
-                                    <Marker
-                                        key={`${reclamation.id}-${index}`}
-                                        position={position}
-                                        title={reclamation.titre}
-                                        icon={statusColors[reclamation.statut] || statusColors.en_attente}
-                                        onClick={() => handleMarkerClick(reclamation)}
-                                    />
-                                );
-                            })}
-
-                            {selectedReclamation && selectedReclamation.parsedLocation && (
+                            {/* Info Window - Only render if selectedReclamation exists */}
+                            {selectedReclamation && (
                                 <InfoWindow
-                                    key={`info-${selectedReclamation.id}`}
                                     position={selectedReclamation.parsedLocation}
                                     onCloseClick={() => setSelectedReclamation(null)}
                                     options={{
@@ -412,16 +418,14 @@ const Map = () => {
                                                     borderRadius: '50%',
                                                     display: 'inline-block',
                                                     mr: 1,
-                                                    backgroundColor: selectedReclamation.statut === 'en_attente' ? '#2196f3' :
-                                                        selectedReclamation.statut === 'en_cours' ? '#ffc107' :
-                                                            selectedReclamation.statut === 'résolue' ? '#4caf50' : '#f44336'
+                                                    backgroundColor: STATUS_COLORS[selectedReclamation.statut]
                                                 }}
                                             />
                                             <Typography
                                                 variant="body2"
                                                 sx={{ color: colors.grey[100] }}
                                             >
-                                                {statusLabels[selectedReclamation.statut]}
+                                                {STATUS_LABELS[selectedReclamation.statut]}
                                             </Typography>
                                         </Box>
 
@@ -453,7 +457,7 @@ const Map = () => {
                                 </InfoWindow>
                             )}
                         </GoogleMap>
-                    </LoadScript>
+                    )}
                 </div>
             </Box>
         </Box>
