@@ -1,10 +1,10 @@
-import { 
-  Box, 
-  IconButton, 
-  useTheme, 
-  Modal, 
-  Avatar, 
-  Typography, 
+import {
+  Box,
+  IconButton,
+  useTheme,
+  Modal,
+  Avatar,
+  Typography,
   CircularProgress,
   Button  // Ajoutez cette ligne
 } from "@mui/material";
@@ -14,6 +14,7 @@ import InputBase from "@mui/material/InputBase";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
@@ -31,14 +32,14 @@ const Topbar = () => {
   const fetchAdminData = async () => {
     try {
       setLoading(true);
-      
+
       // 1. Récupérez tous les admins
       const response = await axios.get('http://localhost:3000/api/admins', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
+
       // 2. Prenez le premier admin comme exemple
       if (response.data.admins && response.data.admins.length > 0) {
         const firstAdmin = response.data.admins.find(admin => admin.id === userData.id);
@@ -92,7 +93,7 @@ const Topbar = () => {
         <IconButton>
           <NotificationsOutlinedIcon />
         </IconButton>
-      
+
         <IconButton onClick={handleOpen}>
           <PersonOutlinedIcon />
         </IconButton>
@@ -105,7 +106,7 @@ const Topbar = () => {
         aria-labelledby="modal-admin-info"
         aria-describedby="modal-admin-description"
       >
-        <Box 
+        <Box
           sx={{
             position: 'absolute',
             top: '50%',
@@ -128,8 +129,8 @@ const Topbar = () => {
               <Typography color="error" gutterBottom>
                 {error}
               </Typography>
-              <Button 
-                variant="outlined" 
+              <Button
+                variant="outlined"
                 onClick={fetchAdminData}
                 sx={{ mt: 2 }}
               >
@@ -139,26 +140,26 @@ const Topbar = () => {
           ) : admin ? (
             <>
               <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
-                <Avatar sx={{ 
-                  width: 80, 
-                  height: 80, 
+                <Avatar sx={{
+                  width: 80,
+                  height: 80,
                   bgcolor: colors.primary[500],
                   fontSize: '2rem'
                 }}>
                   {admin.prenom?.charAt(0)}{admin.nom?.charAt(0)}
                 </Avatar>
-                
+
                 <Typography variant="h5">
                   {admin.prenom} {admin.nom}
                 </Typography>
-                
+
                 <Typography variant="body1" color="text.secondary">
                   {admin.email}
                 </Typography>
-                
-                <Box sx={{ 
-                  px: 2, 
-                  py: 1, 
+
+                <Box sx={{
+                  px: 2,
+                  py: 1,
                   bgcolor: admin.superAdmin ? colors.greenAccent[500] : colors.blueAccent[500],
                   borderRadius: 1
                 }}>
@@ -166,14 +167,14 @@ const Topbar = () => {
                     {admin.superAdmin ? "Super Administrateur" : "Administrateur"}
                   </Typography>
                 </Box>
-                
+
                 <Typography variant="body2">
                   <strong>Région:</strong> {admin.region}
                 </Typography>
               </Box>
-              
+
               <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                <Button 
+                <Button
                   variant="contained"
                   onClick={fetchAdminData}
                 >

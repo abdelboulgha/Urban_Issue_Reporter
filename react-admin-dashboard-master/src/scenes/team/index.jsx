@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Box, Typography, Button, Modal, Card, CardMedia, IconButton, Select, MenuItem, Grid, CardContent, CardActions } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import CloseIcon from "@mui/icons-material/Close";
@@ -12,6 +12,10 @@ import Header from "../../components/Header";
 import { useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
+
+// Déplacer la clé API dans une variable d'environnement ou un fichier de configuration
+// Utilisation de process.env.REACT_APP_GOOGLE_MAPS_API_KEY si vous êtes sur Create React App
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "YOUR_API_KEY";
 
 const containerStyle = {
   width: "100%",
@@ -60,6 +64,9 @@ const Reclamations = () => {
   const [personnel, setPersonnel] = useState([]);
   const [address, setAddress] = useState("");
   const [geocoder, setGeocoder] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   
   // Nouvel état pour afficher la vue catégories ou la vue réclamations
@@ -69,50 +76,101 @@ const Reclamations = () => {
   // Stats pour les catégories
   const [categoryStats, setCategoryStats] = useState({});
 
+  // Récupérer les données utilisateur du localStorage une seule fois au montage
   useEffect(() => {
-    // Récupérer le rôle et la région de l'utilisateur du localStorage au chargement du composant
-    const role = localStorage.getItem("userRole");
-    const regionId = localStorage.getItem("userRegionId");
-    setUserRole(role || "");
-    setUserRegion(regionId || "");
+    try {
+      const storedUserData = localStorage.getItem("userData");
+      const parsedUserData = storedUserData ? JSON.parse(storedUserData) : null;
+      setUserData(parsedUserData);
+      
+      const role = localStorage.getItem("userRole");
+      const regionId = localStorage.getItem("userRegionId");
+      
+      setUserRole(role || "");
+      setUserRegion(regionId || "");
+    } catch (err) {
+      console.error("Erreur lors de la récupération des données utilisateur:", err);
+      setError("Erreur lors de la récupération des données utilisateur");
+    }
   }, []);
 
+  // Fonction pour obtenir une couleur en fonction du statut
+  const getStatusColor = useCallback((status) => {
+    switch(status) {
+      case 'en_attente': return colors.blueAccent[500];
+      case 'en_cours': return colors.yellowAccent ? colors.yellowAccent[500] : "#FFC107"; 
+      case 'resolu': return colors.greenAccent[500];
+      case 'rejete': return colors.redAccent[500];
+      default: return colors.grey[500];
+    }
+  }, [colors]);
+
+  // Fonction pour analyser la localisation
+  const parseLocation = useCallback((locationStr) => {
+    if (!locationStr || typeof locationStr !== 'string') return null;
+
+    try {
+      const coords = locationStr.split(',');
+      if (coords.length !== 2) return null;
+      
+      const lat = parseFloat(coords[0].trim());
+      const lng = parseFloat(coords[1].trim());
+      
+      if (isNaN(lat) || isNaN(lng)) return null;
+      
+      return { lat, lng };
+    } catch (error) {
+      console.error("Error parsing location:", locationStr, error);
+      return null;
+    }
+  }, []);
+
+  // Récupérer les données API lorsque userData est disponible
   useEffect(() => {
     const fetchData = async () => {
+      if (!userData) return; // Éviter les appels API si userData n'est pas encore chargé
+      
+      setLoading(true);
+      setError(null);
+      
       try {
-        // Récupérer le rôle et la région de l'utilisateur
+        const regionId = userData?.regionId || localStorage.getItem("userRegionId");
         const role = localStorage.getItem("userRole");
-        const regionId = localStorage.getItem("userRegionId");
         
-        let reclamationsUrl = "http://localhost:3000/api/reclamations";
-        
-        // Si l'utilisateur n'est pas superAdmin, ajouter le filtre de région
-        if (role !== 'true' && regionId) {
-          reclamationsUrl += `?regionId=${regionId}`;
+        // Construction de l'URL avec vérification
+        let reclamationsUrl = "http://localhost:3000/api/reclmationbyregion/";
+        if (regionId) {
+          reclamationsUrl += regionId;
+        } else {
+          // URL de secours si pas de région trouvée
+          reclamationsUrl = "http://localhost:3000/api/reclamations";
         }
 
-        const reclamationsResponse = await axios.get(reclamationsUrl);
-        setReclamations(reclamationsResponse.data.reclamations);
+        // Exécuter les requêtes en parallèle pour une meilleure performance
+        const [reclamationsResponse, categoriesResponse, regionsResponse, adminsResponse] = await Promise.all([
+          axios.get(reclamationsUrl),
+          axios.get("http://localhost:3000/api/categories"),
+          axios.get("http://localhost:3000/api/regions"),
+          axios.get('http://localhost:3000/api/admins')
+        ]);
 
-        const categoriesResponse = await axios.get("http://localhost:3000/api/categories");
-        setCategories(categoriesResponse.data.categories);
-
-        const regionsResponse = await axios.get("http://localhost:3000/api/regions");
-        setRegions(regionsResponse.data.regions);
-
-        // Fetch personnel data
-        const adminsResponse = await axios.get('http://localhost:3000/api/admins');
-        setPersonnel(adminsResponse.data.admins);
+        const reclamationsData = reclamationsResponse.data.reclamations || [];
+        const categoriesData = categoriesResponse.data.categories || [];
+        const regionsData = regionsResponse.data.regions || [];
+        
+        setReclamations(reclamationsData);
+        setCategories(categoriesData);
+        setRegions(regionsData);
+        setPersonnel(adminsResponse.data.admins || []);
         
         // Calculer les statistiques par catégorie
         const stats = {};
-        const allReclamations = reclamationsResponse.data.reclamations;
         
-        categoriesResponse.data.categories.forEach(category => {
+        categoriesData.forEach(category => {
           // Filtrer les réclamations par catégorie et par région si nécessaire
           const categoryReclamations = role !== 'true' && regionId
-            ? allReclamations.filter(rec => rec.categorieId === category.id && rec.regionId === regionId)
-            : allReclamations.filter(rec => rec.categorieId === category.id);
+            ? reclamationsData.filter(rec => rec.categorieId === category.id && rec.regionId === regionId)
+            : reclamationsData.filter(rec => rec.categorieId === category.id);
             
           // Compter les réclamations par statut
           const enAttente = categoryReclamations.filter(rec => rec.statut === 'en_attente').length;
@@ -132,10 +190,14 @@ const Reclamations = () => {
         setCategoryStats(stats);
       } catch (err) {
         console.error("Erreur API:", err);
+        setError("Erreur lors de la récupération des données");
+      } finally {
+        setLoading(false);
       }
     };
+    
     fetchData();
-  }, []);
+  }, [userData]); // Dépendance à userData pour recharger si l'utilisateur change
 
   const handleOpenModal = (reclamation) => {
     setSelectedReclamation(reclamation);
@@ -159,69 +221,57 @@ const Reclamations = () => {
     setCurrentCategoryName("");
   };
 
-  // Parse location string "latitude, longitude" to {lat, lng} object
-  const parseLocation = (locationStr) => {
-    if (!locationStr) return null;
-
-    try {
-      const [lat, lng] = locationStr.split(',').map(coord => parseFloat(coord.trim()));
-      if (!isNaN(lat) && !isNaN(lng)) {
-        return { lat, lng };
-      }
-      return null;
-    } catch (error) {
-      console.error("Error parsing location:", locationStr, error);
-      return null;
-    }
-  };
-
-  const onMapLoad = (map) => {
-    // Initialize geocoder on map load
-    setGeocoder(new window.google.maps.Geocoder());
-
-    // If we have a selected reclamation, get its address
-    if (selectedReclamation && geocoder) {
-      getAddress(parseLocation(selectedReclamation.localisation));
-    }
-  };
-
-  const getAddress = (position) => {
+  // Utilisation de l'API moderne de Google Maps (Promises)
+  const getAddress = useCallback(async (position) => {
     if (!geocoder || !position) return;
 
-    geocoder.geocode({ location: position }, (results, status) => {
-      if (status === "OK" && results[0]) {
-        setAddress(results[0].formatted_address);
+    try {
+      const response = await geocoder.geocode({ location: position });
+      if (response.results && response.results[0]) {
+        setAddress(response.results[0].formatted_address);
       } else {
-        console.error("Geocoder failed due to: " + status);
         setAddress("Adresse non disponible");
       }
-    });
-  };
+    } catch (error) {
+      console.error("Geocoder error:", error);
+      setAddress("Erreur lors de la récupération de l'adresse");
+    }
+  }, [geocoder]);
 
+  const onMapLoad = useCallback((map) => {
+    // Initialize geocoder on map load if Google Maps is available
+    if (window.google && window.google.maps) {
+      setGeocoder(new window.google.maps.Geocoder());
+    }
+  }, []);
+
+  // Mettre à jour l'adresse quand la réclamation ou le géocodeur change
   useEffect(() => {
-    // When selected reclamation changes and geocoder is available
     if (selectedReclamation && geocoder) {
       const position = parseLocation(selectedReclamation.localisation);
       if (position) {
         getAddress(position);
       }
     }
-  }, [selectedReclamation, geocoder]);
+  }, [selectedReclamation, geocoder, parseLocation, getAddress]);
 
-  // Filtrer les réclamations selon le rôle
+  // Vérifier si l'utilisateur est un superAdmin (conversion appropriée de la chaîne)
+  const isSuperAdmin = userRole === 'true';
+
+  // Filtrer les réclamations selon le rôle et les filtres sélectionnés
   const filteredReclamations = reclamations.filter((rec) => {
     // Pour superAdmin, filtre par catégorie et région sélectionnées
-    if (userRole === 'true') {
+    if (isSuperAdmin) {
       return (selectedCategory ? rec.categorieId === selectedCategory : true) &&
              (selectedRegion ? rec.regionId === selectedRegion : true);
     } 
-    // Pour personnel normal, montrer uniquement les réclamations de la catégorie sélectionnée
-    else {
-      return (currentCategoryId ? rec.categorieId === currentCategoryId : false);
+    // Pour personnel normal, montrer les réclamations de la catégorie sélectionnée
+    else if (currentCategoryId) {
+      return rec.categorieId === currentCategoryId;
     }
+    // Si aucune catégorie n'est sélectionnée, ne rien afficher
+    return false;
   });
-
-  const isSuperAdmin = userRole === 'true';
 
   const reclamationColumns = [
     { field: "id", headerName: "ID", width: 70 },
@@ -259,23 +309,30 @@ const Reclamations = () => {
     },
   ];
 
-  // Fonction pour obtenir une couleur en fonction du statut pour les indicateurs
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'en_attente': return colors.blueAccent[500];
-      case 'en_cours': return colors.yellowAccent ? colors.yellowAccent[500] : "#FFC107"; 
-      case 'resolu': return colors.greenAccent[500];
-      case 'rejete': return colors.redAccent[500];
-      default: return colors.grey[500];
-    }
-  };
+  // Affichage de l'état de chargement
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+        <Typography>Chargement des données...</Typography>
+      </Box>
+    );
+  }
+
+  // Affichage d'erreur
+  if (error) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
 
   // Rendu du composant
   return (
       <Box sx={{ height: "100vh", overflow: "auto" }}>
         <Box m="20px">
           {isSuperAdmin ? (
-              // Vue pour Super Admin - inchangée
+              // Vue pour Super Admin
               <>
                 <Header title="RÉCLAMATIONS" subtitle="Gestion des réclamations du système" />
                 <Box display="flex" gap={2} mb={2}>
@@ -336,125 +393,131 @@ const Reclamations = () => {
                 </Box>
               </>
           ) : (
-              // Vue pour Personnel - modifiée avec vue par cartes de catégories
+              // Vue pour Personnel - avec cartes de catégories
               <>
                 {showCategoryView ? (
                   // Vue des catégories sous forme de cartes
                   <>
                     <Header title="CATÉGORIES DE RÉCLAMATIONS" subtitle="Sélectionnez une catégorie pour voir les réclamations" />
-                    <Grid container spacing={3} sx={{ mt: 2 }}>
-                      {categories.map((category) => (
-                        <Grid item xs={12} sm={6} md={4} key={category.id}>
-                          <Card 
-                            sx={{
-                              backgroundColor: colors.primary[400],
-                              borderRadius: "10px",
-                              boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
-                              transition: "transform 0.3s ease",
-                              cursor: "pointer",
-                              "&:hover": {
-                                transform: "translateY(-5px)",
-                                backgroundColor: colors.primary[300],
-                              },
-                            }}
-                            onClick={() => handleCategoryClick(category.id, category.libelle)}
-                          >
-                            <CardContent>
-                              <Box display="flex" alignItems="center" mb={2}>
-                                <CategoryIcon sx={{ fontSize: 36, color: colors.greenAccent[500], mr: 2 }} />
-                                <Typography variant="h5" sx={{ color: colors.greenAccent[400], fontWeight: "bold" }}>
-                                  {category.libelle}
+                    {categories.length === 0 ? (
+                      <Typography variant="body1" sx={{ mt: 4, textAlign: "center" }}>
+                        Aucune catégorie disponible
+                      </Typography>
+                    ) : (
+                      <Grid container spacing={3} sx={{ mt: 2 }}>
+                        {categories.map((category) => (
+                          <Grid item xs={12} sm={6} md={4} key={category.id}>
+                            <Card 
+                              sx={{
+                                backgroundColor: colors.primary[400],
+                                borderRadius: "10px",
+                                boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+                                transition: "transform 0.3s ease",
+                                cursor: "pointer",
+                                "&:hover": {
+                                  transform: "translateY(-5px)",
+                                  
+                                },
+                              }}
+                              onClick={() => handleCategoryClick(category.id, category.libelle)}
+                            >
+                              <CardContent>
+                                <Box display="flex" alignItems="center" mb={2}>
+                                  <CategoryIcon sx={{ fontSize: 36, color: colors.greenAccent[500], mr: 2 }} />
+                                  <Typography variant="h5" sx={{ color: colors.greenAccent[400], fontWeight: "bold" }}>
+                                    {category.libelle}
+                                  </Typography>
+                                </Box>
+                                <Typography variant="body2" sx={{ color: colors.grey[100], mb: 2 }}>
+                                  {category.description}
                                 </Typography>
-                              </Box>
-                              <Typography variant="body2" sx={{ color: colors.grey[100], mb: 2 }}>
-                                {category.description}
-                              </Typography>
-                              
-                              {/* Statistiques de la catégorie */}
-                              <Box sx={{ mt: 2 }}>
-                                <Typography variant="subtitle2" sx={{ color: colors.grey[300] }}>
-                                  Total: {categoryStats[category.id]?.total || 0} réclamations
-                                </Typography>
-                                <Box display="flex" justifyContent="space-between" sx={{ mt: 1 }}>
-                                  <Box display="flex" flexDirection="column" alignItems="center">
-                                    <Box
-                                      width={12}
-                                      height={12}
-                                      borderRadius="50%"
-                                      bgcolor={getStatusColor('en_attente')}
-                                      mb={0.5}
-                                    />
-                                    <Typography variant="caption" sx={{ color: colors.grey[200] }}>
-                                      {categoryStats[category.id]?.enAttente || 0}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: colors.grey[400] }}>
-                                      En attente
-                                    </Typography>
-                                  </Box>
-                                  <Box display="flex" flexDirection="column" alignItems="center">
-                                    <Box
-                                      width={12}
-                                      height={12}
-                                      borderRadius="50%"
-                                      bgcolor={getStatusColor('en_cours')}
-                                      mb={0.5}
-                                    />
-                                    <Typography variant="caption" sx={{ color: colors.grey[200] }}>
-                                      {categoryStats[category.id]?.enCours || 0}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: colors.grey[400] }}>
-                                      En cours
-                                    </Typography>
-                                  </Box>
-                                  <Box display="flex" flexDirection="column" alignItems="center">
-                                    <Box
-                                      width={12}
-                                      height={12}
-                                      borderRadius="50%"
-                                      bgcolor={getStatusColor('resolu')}
-                                      mb={0.5}
-                                    />
-                                    <Typography variant="caption" sx={{ color: colors.grey[200] }}>
-                                      {categoryStats[category.id]?.resolu || 0}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: colors.grey[400] }}>
-                                      Résolu
-                                    </Typography>
-                                  </Box>
-                                  <Box display="flex" flexDirection="column" alignItems="center">
-                                    <Box
-                                      width={12}
-                                      height={12}
-                                      borderRadius="50%"
-                                      bgcolor={getStatusColor('rejete')}
-                                      mb={0.5}
-                                    />
-                                    <Typography variant="caption" sx={{ color: colors.grey[200] }}>
-                                      {categoryStats[category.id]?.rejete || 0}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ color: colors.grey[400] }}>
-                                      Rejeté
-                                    </Typography>
+                                
+                                {/* Statistiques de la catégorie */}
+                                <Box sx={{ mt: 2 }}>
+                                  <Typography variant="subtitle2" sx={{ color: colors.grey[300] }}>
+                                    Total: {categoryStats[category.id]?.total || 0} réclamations
+                                  </Typography>
+                                  <Box display="flex" justifyContent="space-between" sx={{ mt: 1 }}>
+                                    <Box display="flex" flexDirection="column" alignItems="center">
+                                      <Box
+                                        width={12}
+                                        height={12}
+                                        borderRadius="50%"
+                                        bgcolor={getStatusColor('en_attente')}
+                                        mb={0.5}
+                                      />
+                                      <Typography variant="caption" sx={{ color: colors.grey[200] }}>
+                                        {categoryStats[category.id]?.enAttente || 0}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ color: colors.grey[400] }}>
+                                        En attente
+                                      </Typography>
+                                    </Box>
+                                    <Box display="flex" flexDirection="column" alignItems="center">
+                                      <Box
+                                        width={12}
+                                        height={12}
+                                        borderRadius="50%"
+                                        bgcolor={getStatusColor('en_cours')}
+                                        mb={0.5}
+                                      />
+                                      <Typography variant="caption" sx={{ color: colors.grey[200] }}>
+                                        {categoryStats[category.id]?.enCours || 0}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ color: colors.grey[400] }}>
+                                        En cours
+                                      </Typography>
+                                    </Box>
+                                    <Box display="flex" flexDirection="column" alignItems="center">
+                                      <Box
+                                        width={12}
+                                        height={12}
+                                        borderRadius="50%"
+                                        bgcolor={getStatusColor('resolu')}
+                                        mb={0.5}
+                                      />
+                                      <Typography variant="caption" sx={{ color: colors.grey[200] }}>
+                                        {categoryStats[category.id]?.resolu || 0}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ color: colors.grey[400] }}>
+                                        Résolu
+                                      </Typography>
+                                    </Box>
+                                    <Box display="flex" flexDirection="column" alignItems="center">
+                                      <Box
+                                        width={12}
+                                        height={12}
+                                        borderRadius="50%"
+                                        bgcolor={getStatusColor('rejete')}
+                                        mb={0.5}
+                                      />
+                                      <Typography variant="caption" sx={{ color: colors.grey[200] }}>
+                                        {categoryStats[category.id]?.rejete || 0}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ color: colors.grey[400] }}>
+                                        Rejeté
+                                      </Typography>
+                                    </Box>
                                   </Box>
                                 </Box>
-                              </Box>
-                            </CardContent>
-                            <CardActions sx={{ justifyContent: "center" }}>
-                              <Button 
-                                variant="contained"
-                                startIcon={<VisibilityIcon />}
-                                sx={{ 
-                                  backgroundColor: colors.blueAccent[700],
-                                  "&:hover": { backgroundColor: colors.blueAccent[800] }
-                                }}
-                              >
-                                Voir les réclamations
-                              </Button>
-                            </CardActions>
-                          </Card>
-                        </Grid>
-                      ))}
-                    </Grid>
+                              </CardContent>
+                              <CardActions sx={{ justifyContent: "center" }}>
+                                <Button 
+                                  variant="contained"
+                                  startIcon={<VisibilityIcon />}
+                                  sx={{ 
+                                    backgroundColor: colors.blueAccent[700],
+                                    "&:hover": { backgroundColor: colors.blueAccent[800] }
+                                  }}
+                                >
+                                  Voir les réclamations
+                                </Button>
+                              </CardActions>
+                            </Card>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    )}
                   </>
                 ) : (
                   // Vue des réclamations pour une catégorie spécifique
@@ -514,15 +577,21 @@ const Reclamations = () => {
                         },
                       }}
                     >
-                      <DataGrid
-                        rows={filteredReclamations.map(rec => ({
-                          ...rec,
-                          categorieLibelle: categories.find(cat => cat.id === rec.categorieId)?.libelle || "",
-                          regionNom: regions.find(reg => reg.id === rec.regionId)?.nom || ""
-                        }))}
-                        columns={reclamationColumns}
-                        components={{ Toolbar: GridToolbar }}
-                      />
+                      {filteredReclamations.length === 0 ? (
+                        <Typography variant="body1" sx={{ mt: 4, textAlign: "center" }}>
+                          Aucune réclamation disponible pour cette catégorie
+                        </Typography>
+                      ) : (
+                        <DataGrid
+                          rows={filteredReclamations.map(rec => ({
+                            ...rec,
+                            categorieLibelle: categories.find(cat => cat.id === rec.categorieId)?.libelle || "",
+                            regionNom: regions.find(reg => reg.id === rec.regionId)?.nom || ""
+                          }))}
+                          columns={reclamationColumns}
+                          components={{ Toolbar: GridToolbar }}
+                        />
+                      )}
                     </Box>
                   </>
                 )}
@@ -530,83 +599,91 @@ const Reclamations = () => {
           )}
         </Box>
 
-        {/* Map Modal - Inchangé */}
-        <Modal open={openModal} onClose={handleCloseModal}>
-          <Box sx={modalStyle}>
-            <IconButton
-                onClick={handleCloseModal}
-                sx={{ position: "absolute", top: 10, right: 10 }}
-            >
-              <CloseIcon />
-            </IconButton>
-            {selectedReclamation && (
-                <>
-                  <Typography variant="h5" gutterBottom sx={{ color: "#1565c0", mb: 2 }}>
-                    {selectedReclamation.titre}
-                  </Typography>
-
-                  <Box sx={{ width: "100%", mb: 3 }}>
-                    <LoadScript googleMapsApiKey="AIzaSyAJKMagO0Asw6OgccvD_PcdJxvOWLuE3Vc">
-                      <GoogleMap
-                          mapContainerStyle={containerStyle}
-                          center={parseLocation(selectedReclamation.localisation)}
-                          zoom={15}
-                          onLoad={onMapLoad}
-                      >
-                        <Marker
-                            position={parseLocation(selectedReclamation.localisation)}
-                            title={selectedReclamation.titre}
-                            icon={statusColors[selectedReclamation.statut] || statusColors.en_attente}
-                        />
-                      </GoogleMap>
-                    </LoadScript>
-                  </Box>
-
-                  <Card sx={{ width: "100%", p: 2, borderRadius: "10px", boxShadow: 3, mb: 2 }}>
-                    <Typography variant="body1" paragraph>
-                      {selectedReclamation.description}
+        {/* Map Modal - Optimisé pour ne charger l'API Google Maps qu'une seule fois */}
+        {openModal && (
+          <Modal open={openModal} onClose={handleCloseModal}>
+            <Box sx={modalStyle}>
+              <IconButton
+                  onClick={handleCloseModal}
+                  sx={{ position: "absolute", top: 10, right: 10 }}
+              >
+                <CloseIcon />
+              </IconButton>
+              {selectedReclamation && (
+                  <>
+                    <Typography variant="h5" gutterBottom sx={{ color: "#1565c0", mb: 2 }}>
+                      {selectedReclamation.titre}
                     </Typography>
 
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#388e3c" }}>
-                        Status: <span style={{ color: "black" }}>{selectedReclamation.statut}</span>
-                      </Typography>
-
-                      <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#0288d1" }}>
-                        Catégorie: <span style={{ color: "black" }}>{selectedReclamation.categorieLibelle}</span>
-                      </Typography>
-
-                      <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#7b1fa2" }}>
-                        Région: <span style={{ color: "black" }}>{selectedReclamation.regionNom}</span>
-                      </Typography>
-
-                      <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#d32f2f" }}>
-                        Coordonnées: <span style={{ color: "black" }}>{selectedReclamation.localisation}</span>
-                      </Typography>
-
-                      {address && (
-                          <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#ed6c02" }}>
-                            Adresse: <span style={{ color: "black" }}>{address}</span>
-                          </Typography>
-                      )}
-
-                      <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#9c27b0" }}>
-                        Votes: <span style={{ color: "black" }}>{selectedReclamation.nombre_de_votes}</span>
-                      </Typography>
+                    <Box sx={{ width: "100%", mb: 3 }}>
+                      <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+                        <GoogleMap
+                            mapContainerStyle={containerStyle}
+                            center={parseLocation(selectedReclamation.localisation) || { lat: 0, lng: 0 }}
+                            zoom={15}
+                            onLoad={onMapLoad}
+                        >
+                          {parseLocation(selectedReclamation.localisation) && (
+                            <Marker
+                                position={parseLocation(selectedReclamation.localisation)}
+                                title={selectedReclamation.titre}
+                                icon={statusColors[selectedReclamation.statut] || statusColors.en_attente}
+                            />
+                          )}
+                        </GoogleMap>
+                      </LoadScript>
                     </Box>
-                  </Card>
 
-                  <Button
-                      variant="contained"
-                      onClick={handleCloseModal}
-                      sx={{ mt: 2, bgcolor: "#1976d2" }}
-                  >
-                    Fermer
-                  </Button>
-                </>
-            )}
-          </Box>
-        </Modal>
+                    <Card sx={{ width: "100%", p: 2, borderRadius: "10px", boxShadow: 3, mb: 2 }}>
+                      <Typography variant="body1" paragraph>
+                        {selectedReclamation.description}
+                      </Typography>
+
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#388e3c" }}>
+                          Status: <span style={{ color: "black" }}>{selectedReclamation.statut}</span>
+                        </Typography>
+
+                        <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#0288d1" }}>
+                          Catégorie: <span style={{ color: "black" }}>
+                            {categories.find(cat => cat.id === selectedReclamation.categorieId)?.libelle || ""}
+                          </span>
+                        </Typography>
+
+                        <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#7b1fa2" }}>
+                          Région: <span style={{ color: "black" }}>
+                            {regions.find(reg => reg.id === selectedReclamation.regionId)?.nom || ""}
+                          </span>
+                        </Typography>
+
+                        <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#d32f2f" }}>
+                          Coordonnées: <span style={{ color: "black" }}>{selectedReclamation.localisation}</span>
+                        </Typography>
+
+                        {address && (
+                            <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#ed6c02" }}>
+                              Adresse: <span style={{ color: "black" }}>{address}</span>
+                            </Typography>
+                        )}
+
+                        <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#9c27b0" }}>
+                          Votes: <span style={{ color: "black" }}>{selectedReclamation.nombre_de_votes}</span>
+                        </Typography>
+                      </Box>
+                    </Card>
+
+                    <Button
+                        variant="contained"
+                        onClick={handleCloseModal}
+                        sx={{ mt: 2, bgcolor: "#1976d2" }}
+                    >
+                      Fermer
+                    </Button>
+                  </>
+              )}
+            </Box>
+          </Modal>
+        )}
       </Box>
   );
 };

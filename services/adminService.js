@@ -194,9 +194,10 @@ const updateAdmin = async (id, { nom, prenom, email, password, superAdmin,region
 
 // Service pour supprimer un admin
 const deleteAdmin = async (id) => {
+  
   try {
     const admin = await adminSchema.findByPk(id);
-
+    
     if (!admin) {
       throw new Error('Admin non trouvé');
     }

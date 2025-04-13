@@ -153,7 +153,6 @@ const getReclamationsByStatus = async (req, res) => {
   }
 };
 
-
 const getReclamationsByYear = async (req, res) => {
   const { adminId, year } = req.params; // Get adminId first, then year
   try {
@@ -171,7 +170,6 @@ const getReclamationsByYear = async (req, res) => {
     });
   }
 };
-
 
 const getReclamationsCount = async (req, res) => {
   try {
@@ -191,9 +189,9 @@ const getReclamationsCount = async (req, res) => {
   }
 };
 
-const getReclamationsByRegion = async (req, res) => {
+const getReclamationsOfRegion = async (req, res) => {
   try {
-    const data = await reclamationService.getReclamationsByRegion();
+    const data = await reclamationService.getReclamationsOfRegion();
 
     // Formater les données pour l'affichage
     const formattedData = data.map(item => ({
@@ -206,6 +204,46 @@ const getReclamationsByRegion = async (req, res) => {
     res.status(500).json({ message: 'Erreur lors de la récupération des données', error: error.message });
   }
 };
+
+const getReclamationsByRegion = async (req, res) => {
+  try {
+    const selectedRegion = req.params.selectedRegion;
+    const data = await reclamationService.getReclamationsByRegion(selectedRegion);
+
+    // Formater les données pour l'affichage
+    const formattedData = data.map(item => ({
+      region: item.dataValues.region.nom, // Récupération du nom de la région
+      count: item.dataValues.count
+    }));
+
+    res.status(200).json({ message: 'Réclamations par région récupérées', data: formattedData });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération des données', error: error.message });
+  }
+};
+
+const getReclamationByRegion = async (req, res) => {
+  try {
+    const { regionId } = req.params; // Get the region from the request URL
+    const reclamations = await reclamationService.getReclamationByRegion(regionId);
+
+    if (!reclamations) {
+      return res.status(404).json({
+        message: 'Aucune réclamation trouvée pour cette région',
+      });
+    }
+
+    res.status(200).json({
+      message: 'Réclamations récupérées avec succès',
+      reclamations,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Erreur lors de la récupération des réclamations',
+      error: error.message,
+    });
+  }
+}
 
 const getTopThreeUrgentsReclamations = async (req, res) => {
   try {
@@ -271,6 +309,8 @@ module.exports = {
   getReclamationsByYear,
   getReclamationsCount,
   getReclamationsByRegion,
+  getReclamationsOfRegion,
   getTopThreeUrgentsReclamations,
+  getReclamationByRegion,
   getAllReclamationsByRegion
 };
