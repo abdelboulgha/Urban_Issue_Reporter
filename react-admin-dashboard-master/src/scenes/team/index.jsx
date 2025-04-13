@@ -13,8 +13,6 @@ import { useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
 
-// Déplacer la clé API dans une variable d'environnement ou un fichier de configuration
-// Utilisation de process.env.REACT_APP_GOOGLE_MAPS_API_KEY si vous êtes sur Create React App
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || "AIzaSyAJKMagO0Asw6OgccvD_PcdJxvOWLuE3Vc";
 
 const containerStyle = {
@@ -41,7 +39,6 @@ const modalStyle = {
   alignItems: "center",
 };
 
-// Status colors for markers
 const statusColors = {
   en_attente: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
   en_cours: "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png",
@@ -68,15 +65,11 @@ const Reclamations = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-  
-  // Nouvel état pour afficher la vue catégories ou la vue réclamations
   const [showCategoryView, setShowCategoryView] = useState(true);
   const [currentCategoryId, setCurrentCategoryId] = useState(null);
   const [currentCategoryName, setCurrentCategoryName] = useState("");
-  // Stats pour les catégories
   const [categoryStats, setCategoryStats] = useState({});
 
-  // Récupérer les données utilisateur du localStorage une seule fois au montage
   useEffect(() => {
     try {
       const storedUserData = localStorage.getItem("userData");
@@ -94,7 +87,6 @@ const Reclamations = () => {
     }
   }, []);
 
-  // Fonction pour obtenir une couleur en fonction du statut
   const getStatusColor = useCallback((status) => {
     switch(status) {
       case 'en_attente': return colors.blueAccent[500];
@@ -105,7 +97,6 @@ const Reclamations = () => {
     }
   }, [colors]);
 
-  // Fonction pour analyser la localisation
   const parseLocation = useCallback((locationStr) => {
     if (!locationStr || typeof locationStr !== 'string') return null;
 
@@ -125,10 +116,9 @@ const Reclamations = () => {
     }
   }, []);
 
-  // Récupérer les données API lorsque userData est disponible
   useEffect(() => {
     const fetchData = async () => {
-      if (!userData) return; // Éviter les appels API si userData n'est pas encore chargé
+      if (!userData) return;
       
       setLoading(true);
       setError(null);
@@ -137,16 +127,12 @@ const Reclamations = () => {
         const regionId = userData?.regionId || localStorage.getItem("userRegionId");
         const role = localStorage.getItem("userRole");
         
-        // Construction de l'URL avec vérification
-        let reclamationsUrl = "http://localhost:3000/api/reclmationbyregion/";
-        if (regionId) {
-          reclamationsUrl += regionId;
-        } else {
-          // URL de secours si pas de région trouvée
-          reclamationsUrl = "http://localhost:3000/api/reclamations";
+        // Récupérer toutes les réclamations pour les super admins
+        let reclamationsUrl = "http://localhost:3000/api/reclamations";
+        if (role !== 'true' && regionId) {
+          reclamationsUrl = `http://localhost:3000/api/reclmationbyregion/${regionId}`;
         }
 
-        // Exécuter les requêtes en parallèle pour une meilleure performance
         const [reclamationsResponse, categoriesResponse, regionsResponse, adminsResponse] = await Promise.all([
           axios.get(reclamationsUrl),
           axios.get("http://localhost:3000/api/categories"),
@@ -154,7 +140,7 @@ const Reclamations = () => {
           axios.get('http://localhost:3000/api/admins')
         ]);
 
-        const reclamationsData = reclamationsResponse.data.reclamations || [];
+        const reclamationsData = reclamationsResponse.data.reclamations || reclamationsResponse.data || [];
         const categoriesData = categoriesResponse.data.categories || [];
         const regionsData = regionsResponse.data.regions || [];
         
@@ -163,20 +149,17 @@ const Reclamations = () => {
         setRegions(regionsData);
         setPersonnel(adminsResponse.data.admins || []);
         
-        // Calculer les statistiques par catégorie
         const stats = {};
         
         categoriesData.forEach(category => {
-          // Filtrer les réclamations par catégorie et par région si nécessaire
           const categoryReclamations = role !== 'true' && regionId
             ? reclamationsData.filter(rec => rec.categorieId === category.id && rec.regionId === regionId)
             : reclamationsData.filter(rec => rec.categorieId === category.id);
             
-          // Compter les réclamations par statut
           const enAttente = categoryReclamations.filter(rec => rec.statut === 'en_attente').length;
           const enCours = categoryReclamations.filter(rec => rec.statut === 'en_cours').length;
-          const resolu = categoryReclamations.filter(rec => rec.statut === 'résolue').length;
-          const rejete = categoryReclamations.filter(rec => rec.statut === 'rejetée').length;
+          const resolu = categoryReclamations.filter(rec => rec.statut === 'résolue' || rec.statut === 'resolu').length;
+          const rejete = categoryReclamations.filter(rec => rec.statut === 'rejetée' || rec.statut === 'rejete').length;
           
           stats[category.id] = {
             total: categoryReclamations.length,
@@ -197,11 +180,11 @@ const Reclamations = () => {
     };
     
     fetchData();
-  }, [userData]); // Dépendance à userData pour recharger si l'utilisateur change
+  }, [userData]);
 
   const handleOpenModal = (reclamation) => {
     setSelectedReclamation(reclamation);
-    setAddress(""); // Reset address when opening modal
+    setAddress("");
     setOpenModal(true);
   };
 
@@ -221,7 +204,6 @@ const Reclamations = () => {
     setCurrentCategoryName("");
   };
 
-  // Utilisation de l'API moderne de Google Maps (Promises)
   const getAddress = useCallback(async (position) => {
     if (!geocoder || !position) return;
 
@@ -239,13 +221,11 @@ const Reclamations = () => {
   }, [geocoder]);
 
   const onMapLoad = useCallback((map) => {
-    // Initialize geocoder on map load if Google Maps is available
     if (window.google && window.google.maps) {
       setGeocoder(new window.google.maps.Geocoder());
     }
   }, []);
 
-  // Mettre à jour l'adresse quand la réclamation ou le géocodeur change
   useEffect(() => {
     if (selectedReclamation && geocoder) {
       const position = parseLocation(selectedReclamation.localisation);
@@ -255,21 +235,15 @@ const Reclamations = () => {
     }
   }, [selectedReclamation, geocoder, parseLocation, getAddress]);
 
-  // Vérifier si l'utilisateur est un superAdmin (conversion appropriée de la chaîne)
   const isSuperAdmin = userRole === 'true';
 
-  // Filtrer les réclamations selon le rôle et les filtres sélectionnés
   const filteredReclamations = reclamations.filter((rec) => {
-    // Pour superAdmin, filtre par catégorie et région sélectionnées
     if (isSuperAdmin) {
       return (selectedCategory ? rec.categorieId === selectedCategory : true) &&
              (selectedRegion ? rec.regionId === selectedRegion : true);
-    } 
-    // Pour personnel normal, montrer les réclamations de la catégorie sélectionnée
-    else if (currentCategoryId) {
+    } else if (currentCategoryId) {
       return rec.categorieId === currentCategoryId;
     }
-    // Si aucune catégorie n'est sélectionnée, ne rien afficher
     return false;
   });
 
@@ -309,7 +283,6 @@ const Reclamations = () => {
     },
   ];
 
-  // Affichage de l'état de chargement
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
@@ -318,7 +291,6 @@ const Reclamations = () => {
     );
   }
 
-  // Affichage d'erreur
   if (error) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
@@ -327,22 +299,32 @@ const Reclamations = () => {
     );
   }
 
-  // Rendu du composant
   return (
       <Box sx={{ height: "100vh", overflow: "auto" }}>
         <Box m="20px">
           {isSuperAdmin ? (
-              // Vue pour Super Admin
               <>
                 <Header title="RÉCLAMATIONS" subtitle="Gestion des réclamations du système" />
                 <Box display="flex" gap={2} mb={2}>
-                  <Select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} displayEmpty>
+                  <Select 
+                    value={selectedCategory} 
+                    onChange={(e) => setSelectedCategory(e.target.value)} 
+                    displayEmpty
+                    fullWidth
+                    sx={{ maxWidth: 300 }}
+                  >
                     <MenuItem value="">Toutes les catégories</MenuItem>
                     {categories.map((cat) => (
                         <MenuItem key={cat.id} value={cat.id}>{cat.libelle}</MenuItem>
                     ))}
                   </Select>
-                  <Select value={selectedRegion} onChange={(e) => setSelectedRegion(e.target.value)} displayEmpty>
+                  <Select 
+                    value={selectedRegion} 
+                    onChange={(e) => setSelectedRegion(e.target.value)} 
+                    displayEmpty
+                    fullWidth
+                    sx={{ maxWidth: 300 }}
+                  >
                     <MenuItem value="">Toutes les régions</MenuItem>
                     {regions.map((reg) => (
                         <MenuItem key={reg.id} value={reg.id}>{reg.nom}</MenuItem>
@@ -393,10 +375,8 @@ const Reclamations = () => {
                 </Box>
               </>
           ) : (
-              // Vue pour Personnel - avec cartes de catégories
               <>
                 {showCategoryView ? (
-                  // Vue des catégories sous forme de cartes
                   <>
                     <Header title="CATÉGORIES DE RÉCLAMATIONS" subtitle="Sélectionnez une catégorie pour voir les réclamations" />
                     {categories.length === 0 ? (
@@ -416,7 +396,6 @@ const Reclamations = () => {
                                 cursor: "pointer",
                                 "&:hover": {
                                   transform: "translateY(-5px)",
-                                  
                                 },
                               }}
                               onClick={() => handleCategoryClick(category.id, category.libelle)}
@@ -432,7 +411,6 @@ const Reclamations = () => {
                                   {category.description}
                                 </Typography>
                                 
-                                {/* Statistiques de la catégorie */}
                                 <Box sx={{ mt: 2 }}>
                                   <Typography variant="subtitle2" sx={{ color: colors.grey[300] }}>
                                     Total: {categoryStats[category.id]?.total || 0} réclamations
@@ -520,7 +498,6 @@ const Reclamations = () => {
                     )}
                   </>
                 ) : (
-                  // Vue des réclamations pour une catégorie spécifique
                   <>
                     <Box display="flex" alignItems="center" mb={2}>
                       <Button
@@ -599,7 +576,6 @@ const Reclamations = () => {
           )}
         </Box>
 
-        {/* Map Modal - Optimisé pour ne charger l'API Google Maps qu'une seule fois */}
         {openModal && (
           <Modal open={openModal} onClose={handleCloseModal}>
             <Box sx={modalStyle}>
