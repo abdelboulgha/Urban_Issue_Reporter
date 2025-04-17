@@ -16,6 +16,7 @@ import { ColorModeContext, useMode } from "./theme";
 import Map from "./scenes/map";
 import Categories from "./scenes/categorie";
 import Reclamation from "./scenes/team/Reclamation";
+import WelcomePage from "./components/WelcomePage/WelcomePage";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -33,6 +34,18 @@ function App() {
     return <div>Chargement...</div>;
   }
 
+  // Si sur la page d'accueil sans être authentifié, afficher la page d'accueil
+  if (location.pathname === "/" && !isAuthenticated) {
+    return (
+      <ColorModeContext.Provider value={colorMode}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <WelcomePage />
+        </ThemeProvider>
+      </ColorModeContext.Provider>
+    );
+  }
+
   // Si sur la page de login, afficher uniquement le formulaire d'authentification
   if (location.pathname === "/login") {
     return (
@@ -48,9 +61,9 @@ function App() {
     );
   }
 
-  // Si non authentifié, rediriger vers la page de login
+  // Si non authentifié et pas sur la page d'accueil, rediriger vers la page d'accueil
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Layout principal pour les utilisateurs authentifiés
@@ -79,7 +92,6 @@ function App() {
             </Box>
             <Footer />
           </Box>
-
         </div>
       </ThemeProvider>
     </ColorModeContext.Provider>
