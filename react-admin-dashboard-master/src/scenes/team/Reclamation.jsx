@@ -36,6 +36,7 @@ const Reclamation = () => {
   
   // Exemple d'images multiples (à remplacer par vos données réelles)
   const [images, setImages] = useState([]);
+  const [imagesReclamation, setImagesReclamation] = useState([]);
 
   useEffect(() => {
     const fetchReclamation = async () => {
@@ -43,30 +44,24 @@ const Reclamation = () => {
         const response = await axios.get(`http://localhost:3000/api/reclamation/${id}`);
         setReclamation(response.data.reclamation);
         
-        // Supposons que les images sont dans un tableau dans votre API
-        // Si vous n'avez qu'une seule image, on crée un tableau avec cette image
-        if (response.data.reclamation.image) {
-          // Exemple simple - dans un cas réel, vous pourriez recevoir un tableau d'images
-          setImages([
-            response.data.reclamation.image,
-            // Ajoutez des images placeholder pour démontrer le carrousel
-            "https://via.placeholder.com/800x400?text=Image+2",
-            "https://via.placeholder.com/800x400?text=Image+3",
-            "https://via.placeholder.com/800x400?text=Image+4"
-          ]);
-        } else {
-          // Images placeholder si aucune image n'est disponible
-          setImages([
-            "https://via.placeholder.com/800x400?text=Pas+d'image+disponible"
-          ]);
-        }
-        
-      } catch (err) {
-        setError(err.response?.data?.message || "Erreur lors de la récupération");
-      } finally {
-        setLoading(false);
+        // Récupération des photos liées à la réclamation
+      const photosResponse = await axios.get(`http://localhost:3000/api/photos/reclamation/${id}`);
+      setImagesReclamation(photosResponse.data);
+      
+      // Utiliser les images récupérées de l'API pour le carrousel
+      if (photosResponse.data && photosResponse.data.length > 0) {
+        const imageUrls = photosResponse.data.map(photo => photo.url);
+        setImages(imageUrls);
+      } else {
+        // Image par défaut si aucune image n'est disponible
+        setImages(["https://via.placeholder.com/800x400?text=Pas+d'image+disponible"]);
       }
-    };
+    } catch (err) {
+      setError(err.response?.data?.message || "Erreur lors de la récupération");
+    } finally {
+      setLoading(false);
+    }
+  };
 
     fetchReclamation();
   }, [id]);
@@ -261,7 +256,8 @@ const Reclamation = () => {
                   }
                 }}
               >
-                <img src={image} alt={`Photo ${index + 1}`} />
+                <img src={image
+} alt={`Photo ${index + 1}`} />
               </Box>
             ))}
             
