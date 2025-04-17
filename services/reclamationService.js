@@ -203,14 +203,12 @@ const getReclamationsCount = async (adminId) => {
     });
 
     return { totalReclamations: count };
-
   } catch (error) {
     throw new Error('Error fetching total reclamations count: ' + error.message);
   }
 };
 
-
-const getReclamationsByRegion = async () => {
+const getReclamationsOfRegion = async () => {
   try {
     return await reclamationSchema.findAll({
       attributes: [
@@ -220,14 +218,46 @@ const getReclamationsByRegion = async () => {
       group: ['regionId', 'region.id'], // Include region.id in the GROUP BY clause
       include: [{
         model: regionSchema,
-        attributes: ['id', 'nom'], // Select both 'id' and 'nom' to avoid the GROUP BY error
-        required: true
+        attributes: ['nom'] // Assurez-vous que la colonne s'appelle bien 'nom' dans la table Region
       }]
     });
   } catch (error) {
     throw new Error('Erreur lors de la récupération des réclamations par région: ' + error.message);
   }
 };
+
+const getReclamationsByRegion = async (selectedRegion) => {
+  try {
+    return await reclamationSchema.findAll({
+      attributes: ['regionId', [Sequelize.fn('COUNT', Sequelize.col('regionId')), 'count']],
+      group: ['regionId'],
+      include: [{
+        model: regionSchema,
+        attributes: ['nom'] // Assurez-vous que la colonne s'appelle bien 'nom' dans la table Region
+      }],
+      where: {
+        region: selectedRegion
+      },
+
+    });
+  } catch (error) {
+    throw new Error('Erreur lors de la récupération des réclamations par région: ' + error.message);
+  }
+};
+
+const getReclamationByRegion = async (regionId) => {
+  try {
+    return await reclamationSchema.findAll({
+      where: { regionId},
+      // include: [{
+      //   model: regionSchema,
+      //   attributes: ['nom'] // Assuming 'nom' is the column name for the region name in regionSchema
+      // }]
+    });
+  } catch (error) {
+    throw new Error('Error fetching reclamations by region: ' + error.message);
+  }
+}
 
 const getTopThreeUrgentsReclamations = async (adminId) => {
   try {
@@ -295,7 +325,7 @@ const getAllReclamationsByRegion = async (adminId) => {
 
 
 
-module.exports = { 
+module.exports = {
   createReclamation,
   getAllReclamations,
   getReclamationById,
@@ -305,6 +335,8 @@ module.exports = {
   getReclamationsByMonth,
   getReclamationsCount,
   getReclamationsByRegion,
+  getReclamationsOfRegion,
   getTopThreeUrgentsReclamations,
-  getAllReclamationsByRegion
+  getAllReclamationsByRegion,
+  getReclamationByRegion
 };

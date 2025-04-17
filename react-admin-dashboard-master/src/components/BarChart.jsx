@@ -14,7 +14,7 @@ const BarChart = ({ isDashboard = false }) => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('http://localhost:3000/api/reclamations-by-region');
+        const response = await axios.get('http://localhost:3000/api/reclamations-of-region');
         const data = response.data.data;
 
         const labels = data.map(item => item.region);

@@ -96,7 +96,9 @@ const Sidebar = ({ isSidebar }) => {
         "& .pro-menu-item.active": {
           color: "#6870fa !important",
         },
+        boxShadow: theme.shadows[3],
       }}
+
     >
       <ProSidebar collapsed={isCollapsed}>
         <Menu iconShape="square">

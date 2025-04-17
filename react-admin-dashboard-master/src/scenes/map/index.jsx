@@ -1,34 +1,84 @@
-import { Box, useTheme, CircularProgress, Typography, FormControl, FormGroup, FormControlLabel, Checkbox, Button, IconButton } from "@mui/material";
-import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { Box, useTheme, CircularProgress, Typography, FormControl, FormGroup, FormControlLabel,
+    Checkbox, Button, IconButton, Paper, Chip, Divider, Tooltip, Grid, Card, CardContent } from "@mui/material";
+import { GoogleMap, useLoadScript, Marker, InfoWindow } from "@react-google-maps/api";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
 import { tokens } from "../../theme";
 import SatelliteIcon from '@mui/icons-material/Satellite';
 import MapIcon from '@mui/icons-material/Map';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import InfoIcon from '@mui/icons-material/Info';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import TimelapseIcon from '@mui/icons-material/Timelapse';
+import PendingIcon from '@mui/icons-material/Pending';
 
-const containerStyle = {
+// Constants moved outside component to prevent recreation
+const GOOGLE_MAPS_API_KEY = "AIzaSyAJKMagO0Asw6OgccvD_PcdJxvOWLuE3Vc";
+const API_BASE_URL = "http://localhost:3000/api";
+
+// Define libraries as a constant outside the component to avoid recreating the array on each render
+const GOOGLE_MAPS_LIBRARIES = ["places"];
+
+const MAP_CONTAINER_STYLE = {
     width: '100%',
     height: '100%',
 };
 
-const defaultCenter = {
+const DEFAULT_CENTER = {
     lat: 33.589886,
     lng: -7.603869,
 };
 
-const statusColors = {
+const STATUS_MARKERS = {
     en_attente: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
     en_cours: "http://maps.google.com/mapfiles/ms/icons/yellow-dot.png",
     résolue: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
     rejetée: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
 };
 
-const statusLabels = {
-    en_attente: "En attente",
-    en_cours: "En cours",
-    résolue: "Résolu",
-    rejetée: "Rejeté",
+const STATUS_DATA = {
+    en_attente: {
+        label: "En attente",
+        color: '#2196f3',
+        icon: <PendingIcon fontSize="small" />,
+    },
+    en_cours: {
+        label: "En cours",
+        color: '#ffc107',
+        icon: <TimelapseIcon fontSize="small" />,
+    },
+    résolue: {
+        label: "Résolu",
+        color: '#4caf50',
+        icon: <CheckIcon fontSize="small" />,
+    },
+    rejetée: {
+        label: "Rejeté",
+        color: '#f44336',
+        icon: <CloseIcon fontSize="small" />,
+    }
+};
+
+// Parse location helper function (moved outside component)
+const parseLocation = (locationStr) => {
+    if (!locationStr) return null;
+    try {
+        const locString = String(locationStr).trim();
+        const [lat, lng] = locString.split(',').map(coord => parseFloat(coord.trim()));
+
+        if (isNaN(lat) || isNaN(lng)) {
+            console.error("Invalid location format:", locationStr);
+            return null;
+        }
+
+        return { lat, lng };
+    } catch (error) {
+        console.error("Error parsing location:", error, "for string:", locationStr);
+        return null;
+    }
 };
 
 const Map = () => {
@@ -36,119 +86,84 @@ const Map = () => {
     const colors = tokens(theme.palette.mode);
     const location = useLocation();
     const navigate = useNavigate();
-    const [reclamations, setReclamations] = useState([]);
-    const [center, setCenter] = useState(defaultCenter);
-    const [mapReady, setMapReady] = useState(false);
-    const [dataLoaded, setDataLoaded] = useState(false);
     const mapRef = useRef(null);
-    const loadScriptKey = useRef(Date.now());
-    const [selectedReclamation, setSelectedReclamation] = useState(null);
-    const [markersReady, setMarkersReady] = useState(false);
-    const [mapType, setMapType] = useState('roadmap');
-    const userData = JSON.parse(localStorage.getItem("userData") || "{}");
 
-    // Status filters - All status types are true by default
+    // State management
+    const [reclamations, setReclamations] = useState([]);
+    const [center, setCenter] = useState(DEFAULT_CENTER);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedReclamation, setSelectedReclamation] = useState(null);
+    const [mapType, setMapType] = useState('roadmap');
     const [statusFilters, setStatusFilters] = useState({
         en_attente: true,
         en_cours: true,
         résolue: true,
         rejetée: true,
     });
+    const [filtersExpanded, setFiltersExpanded] = useState(false);
 
-    // Parse location string
-    const parseLocation = useCallback((locationStr) => {
-        if (!locationStr) return null;
-        try {
-            const locString = String(locationStr).trim();
-            const [lat, lng] = locString.split(',').map(coord => parseFloat(coord.trim()));
+    // Use react-google-maps useLoadScript hook with static libraries array
+    const { isLoaded: isMapLibraryLoaded } = useLoadScript({
+        googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+        libraries: GOOGLE_MAPS_LIBRARIES, // Using the constant array defined outside
+    });
 
-            if (isNaN(lat) || isNaN(lng)) {
-                console.error("Invalid location format:", locationStr);
-                return null;
-            }
+    // Get user data once
+    const userData = useMemo(() => JSON.parse(localStorage.getItem("userData") || "{}"), []);
 
-            return { lat, lng };
-        } catch (error) {
-            console.error("Error parsing location:", error, "for string:", locationStr);
-            return null;
-        }
-    }, []);
-
-    // Fetch data
+    // Fetch reclamations data
     useEffect(() => {
         let isMounted = true;
-        setDataLoaded(false);
-        setMarkersReady(false);
+        setIsLoading(true);
 
-        const fetchData = async () => {
+        const fetchReclamations = async () => {
             try {
-                const response = await fetch(`http://localhost:3000/api/all-reclamations-by-region/${userData.id}`);
+                const response = await fetch(`${API_BASE_URL}/all-reclamations-by-region/${userData.id}`);
+
+                if (!response.ok) {
+                    throw new Error(`API responded with status: ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 if (isMounted && data.reclamations) {
+                    // Process reclamations and add parsed locations
                     const processedReclamations = data.reclamations.map(rec => ({
                         ...rec,
                         parsedLocation: parseLocation(rec.localisation)
-                    }));
+                    })).filter(rec => rec.parsedLocation !== null); // Only keep records with valid locations
 
                     setReclamations(processedReclamations);
 
                     // Find first valid location for center (prioritize active reclamations)
                     const firstValidRec = processedReclamations.find(rec =>
                         rec.parsedLocation && (rec.statut === 'en_attente' || rec.statut === 'en_cours')
-                    ) || processedReclamations.find(rec => rec.parsedLocation);
+                    ) || processedReclamations[0];
 
-                    if (firstValidRec) {
+                    if (firstValidRec?.parsedLocation) {
                         setCenter(firstValidRec.parsedLocation);
                     }
                 }
             } catch (error) {
-                console.error("Fetch error:", error);
+                console.error("Failed to fetch reclamations:", error);
             } finally {
                 if (isMounted) {
-                    setDataLoaded(true);
+                    setIsLoading(false);
                 }
             }
         };
 
-        fetchData();
-        return () => { isMounted = false; };
-    }, [parseLocation, userData.id]);
+        fetchReclamations();
 
-    // Reset map when route changes
+        return () => {
+            isMounted = false;
+        };
+    }, [userData.id]);
+
+    // Reset selection when route changes
     useEffect(() => {
-        loadScriptKey.current = Date.now();
-        setMapReady(false);
-        setMarkersReady(false);
         setSelectedReclamation(null);
     }, [location.pathname]);
-
-    // Trigger markers render after map is ready and data is loaded
-    useEffect(() => {
-        if (mapReady && dataLoaded && !markersReady) {
-            const timer = setTimeout(() => {
-                setMarkersReady(true);
-                if (mapRef.current) {
-                    window.dispatchEvent(new Event('resize'));
-                }
-            }, 500);
-
-            return () => clearTimeout(timer);
-        }
-    }, [mapReady, dataLoaded, markersReady]);
-
-    // Handle map load
-    const handleMapLoad = useCallback((map) => {
-        mapRef.current = map;
-        setMapReady(true);
-
-        setTimeout(() => {
-            if (mapRef.current) {
-                window.dispatchEvent(new Event('resize'));
-                mapRef.current.setCenter(center);
-            }
-        }, 100);
-    }, [center]);
 
     // Force resize when tab becomes visible
     useEffect(() => {
@@ -156,7 +171,7 @@ const Map = () => {
             if (document.visibilityState === 'visible' && mapRef.current) {
                 setTimeout(() => {
                     window.dispatchEvent(new Event('resize'));
-                    mapRef.current.setCenter(center);
+                    mapRef.current.panTo(center);
                 }, 300);
             }
         };
@@ -165,50 +180,162 @@ const Map = () => {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [center]);
 
+    // Handle map load
+    const handleMapLoad = useCallback((map) => {
+        mapRef.current = map;
+
+        // Ensure proper sizing and centering
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+            if (mapRef.current) {
+                mapRef.current.panTo(center);
+            }
+        }, 100);
+    }, [center]);
+
     // Handle status filter change
-    const handleStatusFilterChange = (status) => {
+    const handleStatusFilterChange = useCallback((status) => {
         setStatusFilters(prev => ({
             ...prev,
             [status]: !prev[status]
         }));
-    };
+    }, []);
 
     // Handle "Select All" and "Unselect All" functionality
-    const handleSelectAllStatuses = (selectAll) => {
+    const handleSelectAllStatuses = useCallback((selectAll) => {
         const newValues = {};
         Object.keys(statusFilters).forEach(status => {
             newValues[status] = selectAll;
         });
         setStatusFilters(newValues);
-    };
+    }, [statusFilters]);
 
     // Toggle map type
-    const toggleMapType = () => {
+    const toggleMapType = useCallback(() => {
         setMapType(prev => prev === 'roadmap' ? 'satellite' : 'roadmap');
-    };
+    }, []);
 
     // Navigate to reclamation details
-    const handleViewDetails = (id) => {
-        // Direct navigation without modal confirmation
+    const handleViewDetails = useCallback((id) => {
         navigate(`/reclamation/${id}`);
-        // Close the InfoWindow after navigation
         setSelectedReclamation(null);
-    };
+    }, [navigate]);
 
-    // Handle marker click
-    const handleMarkerClick = (reclamation) => {
-        setSelectedReclamation({...reclamation, parsedLocation: reclamation.parsedLocation});
-    };
+    // Handle marker click - simplified to prevent double InfoWindows
+    const handleMarkerClick = useCallback((reclamation) => {
+        setSelectedReclamation(reclamation);
+    }, []);
 
-    // Filter reclamations based on selected status filters
-    const filteredReclamations = reclamations.filter(
-        reclamation => statusFilters[reclamation.statut]
+    // Toggle filter panel
+    const toggleFilters = useCallback(() => {
+        setFiltersExpanded(prev => !prev);
+    }, []);
+
+    // Count reclamations by status
+    const statusCounts = useMemo(() => {
+        return reclamations.reduce((acc, rec) => {
+            acc[rec.statut] = (acc[rec.statut] || 0) + 1;
+            return acc;
+        }, {});
+    }, [reclamations]);
+
+    // Memoize filtered reclamations to avoid unnecessary recalculation
+    const filteredReclamations = useMemo(() =>
+            reclamations
+                .filter(reclamation => statusFilters[reclamation.statut]),
+        [reclamations, statusFilters]
     );
 
-    // Verify we have valid reclamations to display
-    const validReclamations = filteredReclamations.filter(
-        rec => rec.parsedLocation
-    );
+    // Check if we have valid reclamations after filtering
+    const hasNoReclamationsToShow = !isLoading && filteredReclamations.length === 0;
+
+    // Memoize map options to prevent rerenders
+    const mapOptions = useMemo(() => ({
+        disableDefaultUI: true,
+        zoomControl: true,
+        mapTypeId: mapType,
+        fullscreenControl: true,
+        styles: theme.palette.mode === 'dark' ? [
+            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+            {
+                featureType: "administrative.locality",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }],
+            },
+            {
+                featureType: "poi",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }],
+            },
+            {
+                featureType: "poi.park",
+                elementType: "geometry",
+                stylers: [{ color: "#263c3f" }],
+            },
+            {
+                featureType: "poi.park",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#6b9a76" }],
+            },
+            {
+                featureType: "road",
+                elementType: "geometry",
+                stylers: [{ color: "#38414e" }],
+            },
+            {
+                featureType: "road",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#212a37" }],
+            },
+            {
+                featureType: "road",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#9ca5b3" }],
+            },
+            {
+                featureType: "road.highway",
+                elementType: "geometry",
+                stylers: [{ color: "#746855" }],
+            },
+            {
+                featureType: "road.highway",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#1f2835" }],
+            },
+            {
+                featureType: "road.highway",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#f3d19c" }],
+            },
+            {
+                featureType: "transit",
+                elementType: "geometry",
+                stylers: [{ color: "#2f3948" }],
+            },
+            {
+                featureType: "transit.station",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }],
+            },
+            {
+                featureType: "water",
+                elementType: "geometry",
+                stylers: [{ color: "#17263c" }],
+            },
+            {
+                featureType: "water",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#515c6d" }],
+            },
+            {
+                featureType: "water",
+                elementType: "labels.text.stroke",
+                stylers: [{ color: "#17263c" }],
+            },
+        ] : []
+    }), [mapType, theme.palette.mode]);
 
     return (
         <Box m="20px">
@@ -217,72 +344,193 @@ const Map = () => {
                 subtitle="Visualisation géographique des réclamations"
             />
 
-            {/* Status filter controls */}
-            <Box
-                m="20px 0"
-                p="15px"
+            {/* Statistics Cards */}
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+                {Object.entries(STATUS_DATA).map(([status, data]) => (
+                    <Grid item xs={6} sm={3} key={status}>
+                        <Card
+                            raised={statusFilters[status]}
+                            sx={{
+                                borderLeft: `6px solid ${data.color}`,
+                                opacity: statusFilters[status] ? 1 : 0.7,
+                                transition: 'all 0.3s ease',
+                                cursor: 'pointer',
+                                '&:hover': {
+                                    transform: 'translateY(-4px)',
+                                    boxShadow: theme.shadows[8]
+                                }
+                            }}
+                            onClick={() => handleStatusFilterChange(status)}
+                        >
+                            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                                <Box display="flex" justifyContent="space-between" alignItems="center">
+                                    <Box>
+                                        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                            {statusCounts[status] || 0}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            {data.label}
+                                        </Typography>
+                                    </Box>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            p: 1,
+                                            borderRadius: '50%',
+                                            backgroundColor: `${data.color}20`
+                                        }}
+                                    >
+                                        <Box sx={{ color: data.color }}>
+                                            {data.icon}
+                                        </Box>
+                                    </Box>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                ))}
+            </Grid>
+
+            {/* Main Content Box */}
+            <Paper
+                elevation={3}
                 sx={{
-                    backgroundColor: colors.primary[400],
-                    borderRadius: "8px",
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderRadius: 2,
+                    height: '65vh',
                 }}
             >
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb="10px">
-                    <Typography variant="h5">Filtrer par statut:</Typography>
-                    <Box>
-                        <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => handleSelectAllStatuses(true)}
-                            sx={{ mr: 1 }}
-                        >
-                            Tout sélectionner
-                        </Button>
-                        <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => handleSelectAllStatuses(false)}
-                        >
-                            Tout désélectionner
-                        </Button>
-                    </Box>
+                {/* Filters Panel */}
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: 10,
+                        left: 10,
+                        zIndex: 2,
+                        width: filtersExpanded ? 280 : 'auto',
+                        transition: 'all 0.3s ease',
+                        overflow: 'hidden',
+                    }}
+                >
+                    <Paper
+                        elevation={4}
+                        sx={{
+                            p: 2,
+                            backgroundColor: theme.palette.background.paper,
+                            backdropFilter: 'blur(10px)',
+                            borderRadius: 2,
+                        }}
+                    >
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={filtersExpanded ? 2 : 0}>
+                            <Box display="flex" alignItems="center">
+                                <FilterAltIcon sx={{ mr: 1 }} />
+                                {filtersExpanded && (
+                                    <Typography variant="h6" fontWeight="bold">
+                                        Filtres
+                                    </Typography>
+                                )}
+                            </Box>
+                            <IconButton size="small" onClick={toggleFilters}>
+                                {filtersExpanded ? <CloseIcon fontSize="small" /> : <FilterAltIcon fontSize="small" />}
+                            </IconButton>
+                        </Box>
+
+                        {filtersExpanded && (
+                            <>
+                                <Divider sx={{ my: 1.5 }} />
+
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                                    Statut des réclamations:
+                                </Typography>
+
+                                <FormControl component="fieldset" sx={{ width: '100%' }}>
+                                    <FormGroup>
+                                        {Object.entries(STATUS_DATA).map(([status, data]) => (
+                                            <FormControlLabel
+                                                key={status}
+                                                control={
+                                                    <Checkbox
+                                                        checked={statusFilters[status]}
+                                                        onChange={() => handleStatusFilterChange(status)}
+                                                        sx={{
+                                                            '&.Mui-checked': {
+                                                                color: data.color
+                                                            }
+                                                        }}
+                                                        size="small"
+                                                    />
+                                                }
+                                                label={
+                                                    <Box display="flex" alignItems="center">
+                                                        {data.icon}
+                                                        <Typography variant="body2" sx={{ ml: 0.5 }}>
+                                                            {data.label} ({statusCounts[status] || 0})
+                                                        </Typography>
+                                                    </Box>
+                                                }
+                                            />
+                                        ))}
+                                    </FormGroup>
+                                </FormControl>
+
+                                <Box mt={2} display="flex" gap={1}>
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        fullWidth
+                                        onClick={() => handleSelectAllStatuses(true)}
+                                    >
+                                        Tout
+                                    </Button>
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        fullWidth
+                                        onClick={() => handleSelectAllStatuses(false)}
+                                    >
+                                        Aucun
+                                    </Button>
+                                </Box>
+                            </>
+                        )}
+                    </Paper>
                 </Box>
 
-                <FormControl component="fieldset">
-                    <FormGroup row>
-                        {Object.keys(statusFilters).map(status => (
-                            <FormControlLabel
-                                key={status}
-                                control={
-                                    <Checkbox
-                                        checked={statusFilters[status]}
-                                        onChange={() => handleStatusFilterChange(status)}
-                                        sx={{
-                                            '&.Mui-checked': {
-                                                color: status === 'en_attente' ? '#2196f3' :
-                                                    status === 'en_cours' ? '#ffc107' :
-                                                        status === 'résolue' ? '#4caf50' : '#f44336'
-                                            }
-                                        }}
-                                    />
-                                }
-                                label={statusLabels[status]}
-                            />
-                        ))}
-                    </FormGroup>
-                </FormControl>
-            </Box>
+                {/* Map Type Toggle */}
+                <Box sx={{
+                    position: 'absolute',
+                    top: 10,
+                    right: 10,
+                    zIndex: 2,
+                }}>
+                    <Tooltip title={mapType === 'roadmap' ? 'Vue satellite' : 'Vue carte'}>
+                        <Paper
+                            elevation={4}
+                            sx={{
+                                borderRadius: '50%',
+                                overflow: 'hidden',
+                            }}
+                        >
+                            <IconButton
+                                onClick={toggleMapType}
+                                sx={{
+                                    backgroundColor: theme.palette.background.paper,
+                                    '&:hover': {
+                                        backgroundColor: theme.palette.action.hover
+                                    }
+                                }}
+                            >
+                                {mapType === 'roadmap' ? <SatelliteIcon /> : <MapIcon />}
+                            </IconButton>
+                        </Paper>
+                    </Tooltip>
+                </Box>
 
-            <Box
-                m="20px 0 0 0"
-                height="65vh"
-                sx={{
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                    border: `1px solid ${colors.grey[200]}`,
-                    position: 'relative',
-                }}
-            >
-                {(!dataLoaded || !mapReady) && (
+                {/* Loading state */}
+                {isLoading && (
                     <Box sx={{
                         position: 'absolute',
                         top: 0,
@@ -290,19 +538,21 @@ const Map = () => {
                         right: 0,
                         bottom: 0,
                         display: 'flex',
+                        flexDirection: 'column',
                         justifyContent: 'center',
                         alignItems: 'center',
                         backgroundColor: colors.primary[400],
                         zIndex: 1,
                     }}>
-                        <CircularProgress />
-                        <Typography variant="body1" sx={{ ml: 2 }}>
-                            {!dataLoaded ? "Chargement des données..." : "Initialisation de la carte..."}
+                        <CircularProgress size={60} thickness={4} sx={{ mb: 2 }} />
+                        <Typography variant="h6">
+                            Chargement des données...
                         </Typography>
                     </Box>
                 )}
 
-                {validReclamations.length === 0 && dataLoaded && mapReady && (
+                {/* No reclamations message */}
+                {hasNoReclamationsToShow && (
                     <Box sx={{
                         position: 'absolute',
                         top: 0,
@@ -315,147 +565,147 @@ const Map = () => {
                         alignItems: 'center',
                         backgroundColor: 'rgba(0,0,0,0.05)',
                         zIndex: 1,
+                        p: 3,
                     }}>
-                        <Typography variant="h6" sx={{ mb: 1 }}>
+                        <InfoIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2, opacity: 0.7 }} />
+                        <Typography variant="h5" sx={{ mb: 1, fontWeight: 'medium' }}>
                             Aucune réclamation à afficher
                         </Typography>
-                        <Typography variant="body2">
+                        <Typography variant="body1" color="text.secondary" textAlign="center">
                             Veuillez vérifier vos filtres ou ajouter des réclamations avec coordonnées valides.
                         </Typography>
                     </Box>
                 )}
 
-                <div style={{ width: '100%', height: '100%', visibility: mapReady ? 'visible' : 'hidden' }}>
-                    <LoadScript
-                        googleMapsApiKey="AIzaSyAJKMagO0Asw6OgccvD_PcdJxvOWLuE3Vc"
-                        key={loadScriptKey.current}
-                    >
+                {/* Map container */}
+                <div style={{ width: '100%', height: '100%', visibility: isMapLibraryLoaded ? 'visible' : 'hidden' }}>
+                    {isMapLibraryLoaded && (
                         <GoogleMap
-                            mapContainerStyle={containerStyle}
+                            mapContainerStyle={MAP_CONTAINER_STYLE}
                             center={center}
                             zoom={10}
                             onLoad={handleMapLoad}
                             onUnmount={() => mapRef.current = null}
-                            options={{
-                                disableDefaultUI: true,
-                                zoomControl: true,
-                                mapTypeId: mapType,
-                            }}
+                            options={mapOptions}
                         >
-                            {/* Map type toggle button */}
-                            <Box sx={{
-                                position: 'absolute',
-                                top: 10,
-                                right: 10,
-                                zIndex: 1,
-                                backgroundColor: 'white',
-                                borderRadius: '4px',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                            }}>
-                                <IconButton onClick={toggleMapType}>
-                                    {mapType === 'roadmap' ? <SatelliteIcon /> : <MapIcon />}
-                                </IconButton>
-                            </Box>
+                            {/* Markers */}
+                            {filteredReclamations.map((reclamation) => (
+                                <Marker
+                                    key={`marker-${reclamation.id}`}
+                                    position={reclamation.parsedLocation}
+                                    title={reclamation.titre}
+                                    icon={STATUS_MARKERS[reclamation.statut]}
+                                    onClick={() => handleMarkerClick(reclamation)}
+                                    animation={window.google.maps.Animation.DROP}
+                                />
+                            ))}
 
-                            {(markersReady || dataLoaded) && validReclamations.map((reclamation, index) => {
-                                const position = reclamation.parsedLocation;
-                                if (!position) return null;
-
-                                return (
-                                    <Marker
-                                        key={`${reclamation.id}-${index}`}
-                                        position={position}
-                                        title={reclamation.titre}
-                                        icon={statusColors[reclamation.statut] || statusColors.en_attente}
-                                        onClick={() => handleMarkerClick(reclamation)}
-                                    />
-                                );
-                            })}
-
-                            {selectedReclamation && selectedReclamation.parsedLocation && (
+                            {/* Info Window */}
+                            {selectedReclamation && (
                                 <InfoWindow
-                                    key={`info-${selectedReclamation.id}`}
                                     position={selectedReclamation.parsedLocation}
                                     onCloseClick={() => setSelectedReclamation(null)}
                                     options={{
                                         pixelOffset: new window.google.maps.Size(0, -30)
                                     }}
                                 >
-                                    <div style={{
-                                        padding: '16px',
-                                        maxWidth: '300px',
-                                        backgroundColor: colors.primary[400],
-                                        borderRadius: '8px',
-                                        boxShadow: theme.shadows[3]
+                                    <Box sx={{
+                                        p: 0,
+                                        maxWidth: '320px',
+                                        minWidth: '280px',
+                                        backgroundColor: theme.palette.background.paper,
+                                        borderRadius: 1,
+                                        overflow: 'hidden',
                                     }}>
-                                        <Typography
-                                            variant="h6"
+                                        {/* Status bar */}
+                                        <Box
                                             sx={{
-                                                fontWeight: 'bold',
-                                                mb: 1,
-                                                color: colors.grey[100],
+                                                height: '6px',
+                                                width: '100%',
+                                                backgroundColor: STATUS_DATA[selectedReclamation.statut].color
                                             }}
-                                        >
-                                            {selectedReclamation.titre}
-                                        </Typography>
+                                        />
 
-                                        <Box sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            mb: 2
-                                        }}>
-                                            <Box
-                                                component="span"
+                                        <Box sx={{ p: 2 }}>
+                                            <Typography
+                                                variant="h6"
                                                 sx={{
-                                                    width: 12,
-                                                    height: 12,
-                                                    borderRadius: '50%',
-                                                    display: 'inline-block',
-                                                    mr: 1,
-                                                    backgroundColor: selectedReclamation.statut === 'en_attente' ? '#2196f3' :
-                                                        selectedReclamation.statut === 'en_cours' ? '#ffc107' :
-                                                            selectedReclamation.statut === 'résolue' ? '#4caf50' : '#f44336'
+                                                    fontWeight: 'bold',
+                                                    mb: 1.5,
                                                 }}
-                                            />
+                                            >
+                                                {selectedReclamation.titre}
+                                            </Typography>
+
+                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                                <Chip
+                                                    icon={STATUS_DATA[selectedReclamation.statut].icon}
+                                                    label={STATUS_DATA[selectedReclamation.statut].label}
+                                                    size="small"
+                                                    sx={{
+                                                        backgroundColor: `${STATUS_DATA[selectedReclamation.statut].color}20`,
+                                                        color: STATUS_DATA[selectedReclamation.statut].color,
+                                                        fontWeight: 500,
+                                                    }}
+                                                />
+
+                                                <Box sx={{ flex: 1 }} />
+
+                                                <Tooltip title="Localisation">
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            color: 'text.secondary',
+                                                            fontSize: '0.75rem'
+                                                        }}
+                                                    >
+                                                        <LocationOnIcon fontSize="small" sx={{ mr: 0.5, fontSize: '1rem' }} />
+                                                        <Typography variant="caption" noWrap>
+                                                            {selectedReclamation.parsedLocation.lat.toFixed(6)}, {selectedReclamation.parsedLocation.lng.toFixed(6)}
+                                                        </Typography>
+                                                    </Box>
+                                                </Tooltip>
+                                            </Box>
+
+                                            <Divider sx={{ my: 1.5 }} />
+
                                             <Typography
                                                 variant="body2"
-                                                sx={{ color: colors.grey[100] }}
+                                                sx={{
+                                                    mb: 2,
+                                                    color: theme.palette.text.secondary,
+                                                    height: '4.5em',
+                                                    overflow: 'hidden',
+                                                    display: '-webkit-box',
+                                                    WebkitLineClamp: 3,
+                                                    WebkitBoxOrient: 'vertical',
+                                                }}
                                             >
-                                                {statusLabels[selectedReclamation.statut]}
+                                                {selectedReclamation.description || "Pas de description disponible."}
                                             </Typography>
+
+                                            <Button
+                                                variant="contained"
+                                                color="primary"
+                                                fullWidth
+                                                onClick={() => handleViewDetails(selectedReclamation.id)}
+                                                sx={{
+                                                    fontWeight: 'bold',
+                                                    boxShadow: 2,
+                                                    mt: 1,
+                                                }}
+                                            >
+                                                VOIR LES DÉTAILS
+                                            </Button>
                                         </Box>
-
-                                        <Typography
-                                            variant="body2"
-                                            sx={{
-                                                mb: 2,
-                                                color: colors.grey[100],
-                                            }}
-                                        >
-                                            {selectedReclamation.description && selectedReclamation.description.length > 100
-                                                ? `${selectedReclamation.description.substring(0, 100)}...`
-                                                : selectedReclamation.description}
-                                        </Typography>
-
-                                        <Button
-                                            variant="contained"
-                                            color="secondary"
-                                            fullWidth
-                                            onClick={() => handleViewDetails(selectedReclamation.id)}
-                                            sx={{
-                                                mt: 1,
-                                                fontWeight: 'bold',
-                                            }}
-                                        >
-                                            VOIR LES DÉTAILS
-                                        </Button>
-                                    </div>
+                                    </Box>
                                 </InfoWindow>
                             )}
                         </GoogleMap>
-                    </LoadScript>
+                    )}
                 </div>
-            </Box>
+            </Paper>
         </Box>
     );
 };
