@@ -1,6 +1,6 @@
 const { reclamationSchema } = require('../models/reclamationSchema'); // Adjust path if needed
 const regionSchema = require("../models/regionSchema");
-
+const Categorie = require('../models/categorieSchema');
 const  categorieSchema  = require('../models/categorieSchema');
 const  adminSchema  = require('../models/adminSchema');
 const {Sequelize} = require("sequelize"); // Ensure correct import
@@ -13,7 +13,7 @@ const createReclamation = async ({
   nombre_de_votes = 0,
   citoyenId,
   categorieId,
-  regionId// Optional: Handle case if categorieId is not passed or invalid
+  regionId
 }) => {
   try {
     // Check if category exists
@@ -40,6 +40,7 @@ const createReclamation = async ({
     throw new Error('Error creating reclamation: ' + error.message);
   }
 };
+
 
 
 // READ - Get all reclamations

@@ -17,6 +17,8 @@ import Map from "./scenes/map";
 import Categories from "./scenes/categorie";
 import Reclamation from "./scenes/team/Reclamation";
 import WelcomePage from "./components/WelcomePage/WelcomePage";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -75,6 +77,7 @@ function App() {
           <Sidebar isSidebar={isSidebar} />
           <Box sx={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
             <Topbar setIsSidebar={setIsSidebar} />
+            <ToastContainer />
             <Box component="main" className="content" sx={{ flexGrow: 1, overflow: "auto" }}>
               <Routes>
                 <Route path="/" element={<Dashboard />} />

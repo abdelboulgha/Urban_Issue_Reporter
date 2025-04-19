@@ -1,10 +1,22 @@
 const reclamationService = require('../services/reclamationService'); // Ensure correct path
 const { regionSchema } = require('../models/regionSchema'); // Adjust path if needed
+const { Server } = require("socket.io");
+const http = require("http");
+const express = require("express");
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3001", // Frontend URL
+    methods: ["GET", "POST"],
+  },
+});
 
+// Controller to handle creation of a reclamation
 // Controller to handle creation of a reclamation
 const createReclamation = async (req, res) => {
   try {
-    const { titre, description, statut, localisation, nombre_de_votes, citoyenId, categorieId,regionId } = req.body;
+    const { titre, description, statut, localisation, nombre_de_votes, citoyenId, categorieId, regionId } = req.body;
 
     // Call the service to create a reclamation
     const newReclamation = await reclamationService.createReclamation({
@@ -13,16 +25,26 @@ const createReclamation = async (req, res) => {
       statut,
       localisation,
       nombre_de_votes,
-      citoyenId, // Optional, depending on your logic
+      citoyenId,
       categorieId,
-      regionId, // Optional, depending on your logic
+      regionId,
     });
+
+    // Get the io instance from the app
+    const io = req.app.get('io');
+    if (io) {
+      io.emit("newReclamation", newReclamation);
+      console.log("Socket.IO notification emitted for new reclamation");
+    } else {
+      console.log("Socket.IO instance not found");
+    }
 
     res.status(201).json({
       message: 'Réclamation créée avec succès',
       reclamation: newReclamation
     });
   } catch (error) {
+    console.error("Error creating reclamation:", error);
     res.status(500).json({
       message: 'Erreur lors de la création de la réclamation',
       error: error.message

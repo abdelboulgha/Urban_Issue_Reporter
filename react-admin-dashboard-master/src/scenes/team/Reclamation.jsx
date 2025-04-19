@@ -23,6 +23,9 @@ import TitleIcon from "@mui/icons-material/Title";
 import DescriptionIcon from "@mui/icons-material/Description";
 import InfoIcon from "@mui/icons-material/Info";
 import FlagIcon from "@mui/icons-material/Flag";
+import { io } from "socket.io-client";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Reclamation = () => {
   const theme = useTheme();
@@ -65,6 +68,24 @@ const Reclamation = () => {
 
     fetchReclamation();
   }, [id]);
+
+
+  useEffect(() => {
+    // Connexion au serveur Socket.IO
+    const socket = io("http://localhost:3000"); // Assurez-vous que l'URL correspond à votre backend
+
+    // Écouter l'événement "newReclamation"
+    socket.on("newReclamation", (newReclamation) => {
+      toast.success(`Nouvelle réclamation ajoutée : ${newReclamation.titre}`, {
+        position: toast.POSITION.TOP_RIGHT,
+      });
+    });
+
+    // Nettoyer la connexion au socket lors du démontage du composant
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const nextImage = () => {
     setCurrentImageIndex((prevIndex) => 

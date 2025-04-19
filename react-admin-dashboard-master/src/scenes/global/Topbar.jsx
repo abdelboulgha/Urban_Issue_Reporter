@@ -8,9 +8,16 @@ import {
   CircularProgress,
   Button,
   Paper,
-  Divider
+  Divider,
+  Badge,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Popover
 } from "@mui/material";
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { ColorModeContext, tokens } from "../../theme";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
@@ -19,7 +26,9 @@ import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import axios from "axios";
+import { io } from "socket.io-client";
 
 const Topbar = () => {
   const theme = useTheme();
@@ -30,6 +39,56 @@ const Topbar = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const userData = JSON.parse(localStorage.getItem("userData"));
+  const navigate = useNavigate();
+  
+  // États pour les notifications
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifAnchorEl, setNotifAnchorEl] = useState(null);
+  const notifOpen = Boolean(notifAnchorEl);
+
+  // Connexion au socket pour les notifications en temps réel
+  // Dans votre useEffect qui gère la connexion socket
+useEffect(() => {
+  const socket = io("http://localhost:3000");
+  const userData = JSON.parse(localStorage.getItem("userData"));
+  const userRegionId = userData?.regionId;
+  
+  socket.on("connect", () => {
+    console.log("Connecté au serveur Socket.IO");
+  });
+  
+  socket.on("newReclamation", (reclamation) => {
+    console.log("Nouvelle réclamation reçue:", reclamation);
+    
+    // Vérifier si la réclamation concerne la région de l'administrateur connecté
+    if (reclamation.regionId === userRegionId || userData.superAdmin) {
+      // Ajouter la nouvelle notification à la liste seulement si les régions correspondent
+      // ou si l'utilisateur est un superAdmin
+      const newNotification = {
+        id: Date.now(),
+        title: "Nouvelle réclamation",
+        message: `${reclamation.titre}`,
+        time: new Date().toLocaleTimeString(),
+        date: new Date().toLocaleDateString(),
+        read: false,
+        reclamationId: reclamation.id
+      };
+      
+      setNotifications(prev => [newNotification, ...prev]);
+      setUnreadCount(prev => prev + 1);
+    }
+  });
+  
+  socket.on("disconnect", () => {
+    console.log("Déconnecté du serveur Socket.IO");
+  });
+  
+  // Nettoyage de la connexion socket à la fermeture du composant
+  return () => {
+    socket.disconnect();
+  };
+}, []);
 
   const fetchAdminData = async () => {
     try {
@@ -76,6 +135,30 @@ const Topbar = () => {
   const getInitials = () => {
     return (admin?.prenom?.charAt(0) || "") + (admin?.nom?.charAt(0) || "");
   };
+  
+  // Gestionnaires pour les notifications
+  const handleNotificationClick = (event) => {
+    setNotifAnchorEl(event.currentTarget);
+  };
+
+  const handleNotificationClose = () => {
+    setNotifAnchorEl(null);
+    // Marquer toutes les notifications comme lues
+    const updatedNotifications = notifications.map(notif => ({
+      ...notif,
+      read: true
+    }));
+    setNotifications(updatedNotifications);
+    setUnreadCount(0);
+  };
+  
+  const handleNotificationItemClick = (reclamationId) => {
+    // Rediriger vers la page de détails de la réclamation
+    console.log(`Redirection vers la réclamation ID: ${reclamationId}`);
+    navigate(`/reclamation/${reclamationId}`)
+    //window.location.href = `/reclamations/${reclamationId}`;
+    //handleNotificationClose();
+  };
 
   return (
     <Box display="flex" justifyContent="space-between" p={2}>
@@ -97,9 +180,103 @@ const Topbar = () => {
             <LightModeOutlinedIcon />
           )}
         </IconButton>
-        <IconButton>
-          <NotificationsOutlinedIcon />
+        
+        {/* Notification Icon with Badge */}
+        <IconButton onClick={handleNotificationClick}>
+          <Badge badgeContent={unreadCount} color="error">
+            <NotificationsOutlinedIcon />
+          </Badge>
         </IconButton>
+        
+        {/* Popover pour les notifications */}
+        <Popover
+          open={notifOpen}
+          anchorEl={notifAnchorEl}
+          onClose={handleNotificationClose}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right',
+          }}
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: 'right',
+          }}
+          PaperProps={{
+            sx: {
+              width: 350,
+              maxHeight: 500,
+              mt: 0.5,
+              boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
+              borderRadius: 2
+            }
+          }}
+        >
+          <Box sx={{ bgcolor: colors.primary[400], p: 2 }}>
+            <Typography variant="h6" fontWeight="bold">Notifications</Typography>
+          </Box>
+          
+          <List sx={{ p: 0, overflowY: 'auto', maxHeight: 400 }}>
+            {notifications.length > 0 ? (
+              notifications.map((notif) => (
+                <ListItem 
+                  key={notif.id}
+                  divider
+                  button
+                  onClick={() => handleNotificationItemClick(notif.reclamationId)}
+                  sx={{
+                    bgcolor: notif.read ? 'transparent' : theme.palette.mode === 'dark' ? colors.primary[600] : colors.grey[100],
+                    '&:hover': {
+                      bgcolor: theme.palette.mode === 'dark' ? colors.primary[700] : colors.grey[200],
+                    }
+                  }}
+                >
+                  <ListItemAvatar>
+                    <Avatar sx={{ bgcolor: colors.greenAccent[500] }}>
+                      <NotificationsIcon />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText 
+                    primary={
+                      <Typography variant="subtitle1" fontWeight={notif.read ? 'normal' : 'bold'}>
+                        {notif.title}
+                      </Typography>
+                    } 
+                    secondary={
+                      <>
+                        <Typography variant="body2" component="span" display="block">
+                          {notif.message}
+                        </Typography>
+                        <Typography variant="caption" component="span" color="textSecondary">
+                          {notif.date} à {notif.time}
+                        </Typography>
+                      </>
+                    }
+                  />
+                </ListItem>
+              ))
+            ) : (
+              <Box sx={{ py: 4, textAlign: 'center' }}>
+                <Typography color="text.secondary">Aucune notification</Typography>
+              </Box>
+            )}
+          </List>
+          
+          {notifications.length > 0 && (
+            <Box sx={{ p: 2, textAlign: 'center', borderTop: 1, borderColor: 'divider' }}>
+              <Button 
+                variant="text" 
+                size="small"
+                onClick={() => {
+                  setNotifications([]);
+                  setUnreadCount(0);
+                }}
+                sx={{ color: colors.blueAccent[400] }}
+              >
+                Effacer toutes les notifications
+              </Button>
+            </Box>
+          )}
+        </Popover>
 
         <IconButton onClick={handleOpen}>
           <PersonOutlinedIcon />
