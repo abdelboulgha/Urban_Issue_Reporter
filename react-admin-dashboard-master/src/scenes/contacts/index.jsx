@@ -14,7 +14,7 @@ import {
   FormControlLabel,
   IconButton,
   InputAdornment,
-  MenuItem
+  MenuItem,
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import { tokens } from "../../theme";
@@ -22,11 +22,11 @@ import Header from "../../components/Header";
 import { useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 const AdminContacts = () => {
   const theme = useTheme();
@@ -40,17 +40,17 @@ const AdminContacts = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [currentAdmin, setCurrentAdmin] = useState(null);
   const [formData, setFormData] = useState({
-    nom: '',
-    prenom: '',
-    email: '',
+    nom: "",
+    prenom: "",
+    email: "",
     superAdmin: false,
-    password: '',
-    regionId: null
+    password: "",
+    regionId: null,
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
-    severity: "success"
+    severity: "success",
   });
   const [processing, setProcessing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -60,8 +60,8 @@ const AdminContacts = () => {
       try {
         setLoading(true);
         const [adminsResponse, regionsResponse] = await Promise.all([
-          axios.get('http://localhost:3000/api/admins'),
-          axios.get('http://localhost:3000/api/regions')
+          axios.get("https://urbanissuereporter-86jk0m0e.b4a.run/api/admins"),
+          axios.get("https://urbanissuereporter-86jk0m0e.b4a.run/api/regions"),
         ]);
 
         setAdmins(adminsResponse.data.admins || []);
@@ -89,20 +89,20 @@ const AdminContacts = () => {
       prenom: admin.prenom,
       email: admin.email,
       superAdmin: admin.superAdmin,
-      password: '',
-      regionId: admin.regionId || null
+      password: "",
+      regionId: admin.regionId || null,
     });
     setEditOpen(true);
   };
 
   const handleAddClick = () => {
     setFormData({
-      nom: '',
-      prenom: '',
-      email: '',
+      nom: "",
+      prenom: "",
+      email: "",
       superAdmin: false,
-      password: '',
-      regionId: null
+      password: "",
+      regionId: null,
     });
     setAddOpen(true);
   };
@@ -121,21 +121,27 @@ const AdminContacts = () => {
         prenom: formData.prenom,
         email: formData.email,
         superAdmin: formData.superAdmin,
-        regionId: formData.regionId
+        regionId: formData.regionId,
       };
 
       if (formData.password) {
         dataToSend.password = formData.password;
       }
 
-      await axios.put(`http://localhost:3000/api/admin/${currentAdmin.id}`, dataToSend);
+      await axios.put(
+        `https://urbanissuereporter-86jk0m0e.b4a.run/api/admin/${currentAdmin.id}`,
+        dataToSend
+      );
       showSnackbar("Personnel modifié avec succès", "success");
-      const response = await axios.get('http://localhost:3000/api/admins');
+      const response = await axios.get(
+        "https://urbanissuereporter-86jk0m0e.b4a.run/api/admins"
+      );
       setAdmins(response.data.admins || []);
       setEditOpen(false);
     } catch (error) {
       console.error("Error updating admin:", error);
-      const errorMsg = error.response?.data?.message || "Erreur lors de la modification";
+      const errorMsg =
+        error.response?.data?.message || "Erreur lors de la modification";
       showSnackbar(errorMsg, "error");
     } finally {
       setProcessing(false);
@@ -145,14 +151,20 @@ const AdminContacts = () => {
   const handleAddSubmit = async () => {
     try {
       setProcessing(true);
-      await axios.post('http://localhost:3000/api/admin', formData);
+      await axios.post(
+        "https://urbanissuereporter-86jk0m0e.b4a.run/api/admin",
+        formData
+      );
       showSnackbar("Personnel ajouté avec succès", "success");
-      const response = await axios.get('http://localhost:3000/api/admins');
+      const response = await axios.get(
+        "https://urbanissuereporter-86jk0m0e.b4a.run/api/admins"
+      );
       setAdmins(response.data.admins || []);
       setAddOpen(false);
     } catch (error) {
       console.error("Error adding admin:", error);
-      const errorMsg = error.response?.data?.message || "Erreur lors de l'ajout";
+      const errorMsg =
+        error.response?.data?.message || "Erreur lors de l'ajout";
       showSnackbar(errorMsg, "error");
     } finally {
       setProcessing(false);
@@ -163,14 +175,19 @@ const AdminContacts = () => {
     try {
       console.log("Deleting admin:", currentAdmin.id);
       setProcessing(true);
-      await axios.delete(`http://localhost:3000/api/admin/${currentAdmin.id}`);
+      await axios.delete(
+        `https://urbanissuereporter-86jk0m0e.b4a.run/api/admin/${currentAdmin.id}`
+      );
       showSnackbar("Personnel supprimé avec succès", "success");
-      const response = await axios.get('http://localhost:3000/api/admins');
+      const response = await axios.get(
+        "https://urbanissuereporter-86jk0m0e.b4a.run/api/admins"
+      );
       setAdmins(response.data.admins || []);
       setDeleteOpen(false);
     } catch (error) {
       console.error("Error deleting admin:", error);
-      const errorMsg = error.response?.data?.message || "Erreur lors de la suppression";
+      const errorMsg =
+        error.response?.data?.message || "Erreur lors de la suppression";
       showSnackbar(errorMsg, "error");
     } finally {
       setProcessing(false);
@@ -181,7 +198,7 @@ const AdminContacts = () => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -214,9 +231,11 @@ const AdminContacts = () => {
       flex: 1,
       valueGetter: (params) => {
         // Vérifie plusieurs façons d'accéder au nom de la région
-        return params.row.Region?.nom ||
-               regions.find(r => r.id === params.row.regionId)?.nom ||
-               "Non assigné";
+        return (
+          params.row.Region?.nom ||
+          regions.find((r) => r.id === params.row.regionId)?.nom ||
+          "Non assigné"
+        );
       },
     },
     {
@@ -231,9 +250,7 @@ const AdminContacts = () => {
           display="flex"
           justifyContent="center"
           backgroundColor={
-            row.superAdmin
-              ? colors.greenAccent[600]
-              : colors.redAccent[700]
+            row.superAdmin ? colors.greenAccent[600] : colors.redAccent[700]
           }
           borderRadius="4px"
         >
@@ -255,11 +272,9 @@ const AdminContacts = () => {
             onClick={() => handleEditClick(row)}
             sx={{
               backgroundColor: colors.blueAccent[600],
-              "&:hover": { backgroundColor: colors.blueAccent[700] }
+              "&:hover": { backgroundColor: colors.blueAccent[700] },
             }}
-          >
-
-          </Button>
+          ></Button>
           <Button
             variant="contained"
             color="secondary"
@@ -268,11 +283,9 @@ const AdminContacts = () => {
             onClick={() => handleDeleteClick(row)}
             sx={{
               backgroundColor: colors.redAccent[700],
-              "&:hover": { backgroundColor: colors.redAccent[800] }
+              "&:hover": { backgroundColor: colors.redAccent[800] },
             }}
-          >
-
-          </Button>
+          ></Button>
         </Box>
       ),
     },
@@ -280,7 +293,12 @@ const AdminContacts = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        height="100vh"
+      >
         <CircularProgress />
       </Box>
     );
@@ -302,14 +320,14 @@ const AdminContacts = () => {
           subtitle={`Liste des personnels (${admins.length})`}
         />
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleAddClick}
             sx={{
               backgroundColor: colors.greenAccent[600],
-              "&:hover": { backgroundColor: colors.greenAccent[700] }
+              "&:hover": { backgroundColor: colors.greenAccent[700] },
             }}
           >
             Ajouter un personnel
@@ -367,12 +385,19 @@ const AdminContacts = () => {
       </Box>
 
       {/* Dialog pour l'ajout */}
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
-          <Typography variant="h5" fontWeight="bold">Ajouter un nouveau personnel</Typography>
+          <Typography variant="h5" fontWeight="bold">
+            Ajouter un nouveau personnel
+          </Typography>
         </DialogTitle>
         <DialogContent dividers>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3, pt: 2 }}>
             <TextField
               label="Nom"
               name="nom"
@@ -418,7 +443,11 @@ const AdminContacts = () => {
                       onClick={toggleShowPassword}
                       edge="end"
                     >
-                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      {showPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -428,7 +457,7 @@ const AdminContacts = () => {
               select
               label="Région"
               name="regionId"
-              value={formData.regionId || ''}
+              value={formData.regionId || ""}
               onChange={handleInputChange}
               fullWidth
               variant="outlined"
@@ -468,18 +497,29 @@ const AdminContacts = () => {
             disabled={processing}
             sx={{ ml: 2 }}
           >
-            {processing ? <CircularProgress size={24} color="inherit" /> : "Ajouter"}
+            {processing ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Ajouter"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog pour la modification */}
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>
-          <Typography variant="h5" fontWeight="bold">Modifier le personnel</Typography>
+          <Typography variant="h5" fontWeight="bold">
+            Modifier le personnel
+          </Typography>
         </DialogTitle>
         <DialogContent dividers>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3, pt: 2 }}>
             <TextField
               label="Nom"
               name="nom"
@@ -525,7 +565,11 @@ const AdminContacts = () => {
                       onClick={toggleShowPassword}
                       edge="end"
                     >
-                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      {showPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -535,7 +579,7 @@ const AdminContacts = () => {
               select
               label="Région"
               name="regionId"
-              value={formData.regionId || ''}
+              value={formData.regionId || ""}
               onChange={handleInputChange}
               fullWidth
               variant="outlined"
@@ -575,22 +619,34 @@ const AdminContacts = () => {
             disabled={processing}
             sx={{ ml: 2 }}
           >
-            {processing ? <CircularProgress size={24} color="inherit" /> : "Enregistrer"}
+            {processing ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Enregistrer"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog pour la suppression */}
-      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} maxWidth="sm">
+      <Dialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        maxWidth="sm"
+      >
         <DialogTitle>
-          <Typography variant="h5" fontWeight="bold">Confirmer la suppression</Typography>
+          <Typography variant="h5" fontWeight="bold">
+            Confirmer la suppression
+          </Typography>
         </DialogTitle>
         <DialogContent dividers>
           <Typography variant="body1" gutterBottom>
-            Êtes-vous sûr de vouloir supprimer {currentAdmin?.prenom} {currentAdmin?.nom} ?
+            Êtes-vous sûr de vouloir supprimer {currentAdmin?.prenom}{" "}
+            {currentAdmin?.nom} ?
           </Typography>
           <Typography variant="body2" color="error">
-            Cette action est irréversible et supprimera définitivement ce personnel.
+            Cette action est irréversible et supprimera définitivement ce
+            personnel.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
@@ -608,7 +664,11 @@ const AdminContacts = () => {
             disabled={processing}
             sx={{ ml: 2 }}
           >
-            {processing ? <CircularProgress size={24} color="inherit" /> : "Confirmer la suppression"}
+            {processing ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Confirmer la suppression"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -617,13 +677,13 @@ const AdminContacts = () => {
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={() => setSnackbar({...snackbar, open: false})}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Alert
-          onClose={() => setSnackbar({...snackbar, open: false})}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          sx={{ width: "100%" }}
           variant="filled"
         >
           {snackbar.message}

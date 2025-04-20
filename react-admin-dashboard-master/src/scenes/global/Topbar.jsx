@@ -14,7 +14,7 @@ import {
   ListItem,
   ListItemText,
   ListItemAvatar,
-  Popover
+  Popover,
 } from "@mui/material";
 import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -40,7 +40,7 @@ const Topbar = () => {
   const [error, setError] = useState(null);
   const userData = JSON.parse(localStorage.getItem("userData"));
   const navigate = useNavigate();
-  
+
   // États pour les notifications
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -49,70 +49,75 @@ const Topbar = () => {
 
   // Connexion au socket pour les notifications en temps réel
   // Dans votre useEffect qui gère la connexion socket
-useEffect(() => {
-  const socket = io("http://localhost:3000");
-  const userData = JSON.parse(localStorage.getItem("userData"));
-  const userRegionId = userData?.regionId;
-  
-  socket.on("connect", () => {
-    console.log("Connecté au serveur Socket.IO");
-  });
-  
-  socket.on("newReclamation", (reclamation) => {
-    console.log("Nouvelle réclamation reçue:", reclamation);
-    
-    // Vérifier si la réclamation concerne la région de l'administrateur connecté
-    if (reclamation.regionId === userRegionId || userData.superAdmin) {
-      // Ajouter la nouvelle notification à la liste seulement si les régions correspondent
-      // ou si l'utilisateur est un superAdmin
-      const newNotification = {
-        id: Date.now(),
-        title: "Nouvelle réclamation",
-        message: `${reclamation.titre}`,
-        time: new Date().toLocaleTimeString(),
-        date: new Date().toLocaleDateString(),
-        read: false,
-        reclamationId: reclamation.id
-      };
-      
-      setNotifications(prev => [newNotification, ...prev]);
-      setUnreadCount(prev => prev + 1);
-    }
-  });
-  
-  socket.on("disconnect", () => {
-    console.log("Déconnecté du serveur Socket.IO");
-  });
-  
-  // Nettoyage de la connexion socket à la fermeture du composant
-  return () => {
-    socket.disconnect();
-  };
-}, []);
+  useEffect(() => {
+    const socket = io("https://urbanissuereporter-86jk0m0e.b4a.run");
+    const userData = JSON.parse(localStorage.getItem("userData"));
+    const userRegionId = userData?.regionId;
+
+    socket.on("connect", () => {
+      console.log("Connecté au serveur Socket.IO");
+    });
+
+    socket.on("newReclamation", (reclamation) => {
+      console.log("Nouvelle réclamation reçue:", reclamation);
+
+      // Vérifier si la réclamation concerne la région de l'administrateur connecté
+      if (reclamation.regionId === userRegionId || userData.superAdmin) {
+        // Ajouter la nouvelle notification à la liste seulement si les régions correspondent
+        // ou si l'utilisateur est un superAdmin
+        const newNotification = {
+          id: Date.now(),
+          title: "Nouvelle réclamation",
+          message: `${reclamation.titre}`,
+          time: new Date().toLocaleTimeString(),
+          date: new Date().toLocaleDateString(),
+          read: false,
+          reclamationId: reclamation.id,
+        };
+
+        setNotifications((prev) => [newNotification, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Déconnecté du serveur Socket.IO");
+    });
+
+    // Nettoyage de la connexion socket à la fermeture du composant
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const fetchAdminData = async () => {
     try {
       setLoading(true);
 
-      const response = await axios.get('http://localhost:3000/api/admins', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+      const response = await axios.get(
+        "https://urbanissuereporter-86jk0m0e.b4a.run/api/admins",
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
-      });
+      );
 
       if (response.data.admins && response.data.admins.length > 0) {
-        const currentAdmin = response.data.admins.find(admin => admin.id === userData.id);
+        const currentAdmin = response.data.admins.find(
+          (admin) => admin.id === userData.id
+        );
 
         if (currentAdmin) {
           setAdmin({
             ...currentAdmin,
-            region: currentAdmin.Region?.nom || "Non assigné"
+            region: currentAdmin.Region?.nom || "Non assigné",
           });
         } else {
-          throw new Error('Admin non trouvé');
+          throw new Error("Admin non trouvé");
         }
       } else {
-        throw new Error('Aucun admin trouvé');
+        throw new Error("Aucun admin trouvé");
       }
     } catch (err) {
       setError(err.message);
@@ -135,7 +140,7 @@ useEffect(() => {
   const getInitials = () => {
     return (admin?.prenom?.charAt(0) || "") + (admin?.nom?.charAt(0) || "");
   };
-  
+
   // Gestionnaires pour les notifications
   const handleNotificationClick = (event) => {
     setNotifAnchorEl(event.currentTarget);
@@ -144,18 +149,18 @@ useEffect(() => {
   const handleNotificationClose = () => {
     setNotifAnchorEl(null);
     // Marquer toutes les notifications comme lues
-    const updatedNotifications = notifications.map(notif => ({
+    const updatedNotifications = notifications.map((notif) => ({
       ...notif,
-      read: true
+      read: true,
     }));
     setNotifications(updatedNotifications);
     setUnreadCount(0);
   };
-  
+
   const handleNotificationItemClick = (reclamationId) => {
     // Rediriger vers la page de détails de la réclamation
     console.log(`Redirection vers la réclamation ID: ${reclamationId}`);
-    navigate(`/reclamation/${reclamationId}`)
+    navigate(`/reclamation/${reclamationId}`);
     //window.location.href = `/reclamations/${reclamationId}`;
     //handleNotificationClose();
   };
@@ -180,54 +185,65 @@ useEffect(() => {
             <LightModeOutlinedIcon />
           )}
         </IconButton>
-        
+
         {/* Notification Icon with Badge */}
         <IconButton onClick={handleNotificationClick}>
           <Badge badgeContent={unreadCount} color="error">
             <NotificationsOutlinedIcon />
           </Badge>
         </IconButton>
-        
+
         {/* Popover pour les notifications */}
         <Popover
           open={notifOpen}
           anchorEl={notifAnchorEl}
           onClose={handleNotificationClose}
           anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'right',
+            vertical: "bottom",
+            horizontal: "right",
           }}
           transformOrigin={{
-            vertical: 'top',
-            horizontal: 'right',
+            vertical: "top",
+            horizontal: "right",
           }}
           PaperProps={{
             sx: {
               width: 350,
               maxHeight: 500,
               mt: 0.5,
-              boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
-              borderRadius: 2
-            }
+              boxShadow: "0 3px 10px rgba(0,0,0,0.2)",
+              borderRadius: 2,
+            },
           }}
         >
           <Box sx={{ bgcolor: colors.primary[400], p: 2 }}>
-            <Typography variant="h6" fontWeight="bold">Notifications</Typography>
+            <Typography variant="h6" fontWeight="bold">
+              Notifications
+            </Typography>
           </Box>
-          
-          <List sx={{ p: 0, overflowY: 'auto', maxHeight: 400 }}>
+
+          <List sx={{ p: 0, overflowY: "auto", maxHeight: 400 }}>
             {notifications.length > 0 ? (
               notifications.map((notif) => (
-                <ListItem 
+                <ListItem
                   key={notif.id}
                   divider
                   button
-                  onClick={() => handleNotificationItemClick(notif.reclamationId)}
+                  onClick={() =>
+                    handleNotificationItemClick(notif.reclamationId)
+                  }
                   sx={{
-                    bgcolor: notif.read ? 'transparent' : theme.palette.mode === 'dark' ? colors.primary[600] : colors.grey[100],
-                    '&:hover': {
-                      bgcolor: theme.palette.mode === 'dark' ? colors.primary[700] : colors.grey[200],
-                    }
+                    bgcolor: notif.read
+                      ? "transparent"
+                      : theme.palette.mode === "dark"
+                      ? colors.primary[600]
+                      : colors.grey[100],
+                    "&:hover": {
+                      bgcolor:
+                        theme.palette.mode === "dark"
+                          ? colors.primary[700]
+                          : colors.grey[200],
+                    },
                   }}
                 >
                   <ListItemAvatar>
@@ -235,18 +251,29 @@ useEffect(() => {
                       <NotificationsIcon />
                     </Avatar>
                   </ListItemAvatar>
-                  <ListItemText 
+                  <ListItemText
                     primary={
-                      <Typography variant="subtitle1" fontWeight={notif.read ? 'normal' : 'bold'}>
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight={notif.read ? "normal" : "bold"}
+                      >
                         {notif.title}
                       </Typography>
-                    } 
+                    }
                     secondary={
                       <>
-                        <Typography variant="body2" component="span" display="block">
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          display="block"
+                        >
                           {notif.message}
                         </Typography>
-                        <Typography variant="caption" component="span" color="textSecondary">
+                        <Typography
+                          variant="caption"
+                          component="span"
+                          color="textSecondary"
+                        >
                           {notif.date} à {notif.time}
                         </Typography>
                       </>
@@ -255,16 +282,25 @@ useEffect(() => {
                 </ListItem>
               ))
             ) : (
-              <Box sx={{ py: 4, textAlign: 'center' }}>
-                <Typography color="text.secondary">Aucune notification</Typography>
+              <Box sx={{ py: 4, textAlign: "center" }}>
+                <Typography color="text.secondary">
+                  Aucune notification
+                </Typography>
               </Box>
             )}
           </List>
-          
+
           {notifications.length > 0 && (
-            <Box sx={{ p: 2, textAlign: 'center', borderTop: 1, borderColor: 'divider' }}>
-              <Button 
-                variant="text" 
+            <Box
+              sx={{
+                p: 2,
+                textAlign: "center",
+                borderTop: 1,
+                borderColor: "divider",
+              }}
+            >
+              <Button
+                variant="text"
                 size="small"
                 onClick={() => {
                   setNotifications([]);
@@ -292,27 +328,27 @@ useEffect(() => {
       >
         <Paper
           sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
             width: 450,
             boxShadow: 24,
             p: 0,
             borderRadius: 2,
-            outline: 'none',
-            maxHeight: '90vh',
-            overflowY: 'auto'
+            outline: "none",
+            maxHeight: "90vh",
+            overflowY: "auto",
           }}
         >
           {/* Header */}
-          <Box 
-            sx={{ 
-              p: 3, 
+          <Box
+            sx={{
+              p: 3,
               bgcolor: colors.primary[400],
               borderTopLeftRadius: 8,
               borderTopRightRadius: 8,
-              position: 'relative'
+              position: "relative",
             }}
           >
             <Typography variant="h4" textAlign="center" fontWeight="bold">
@@ -342,36 +378,45 @@ useEffect(() => {
             ) : admin ? (
               <>
                 {/* Avatar and user info */}
-                <Box display="flex" flexDirection="column" alignItems="center" mb={3}>
-                  <Avatar 
+                <Box
+                  display="flex"
+                  flexDirection="column"
+                  alignItems="center"
+                  mb={3}
+                >
+                  <Avatar
                     sx={{
                       width: 100,
                       height: 100,
                       bgcolor: colors.greenAccent[500],
-                      fontSize: '2.5rem',
-                      mb: 2
+                      fontSize: "2.5rem",
+                      mb: 2,
                     }}
                   >
                     {getInitials()}
                   </Avatar>
-                  
+
                   <Box textAlign="center">
                     <Typography variant="h5" fontWeight="bold">
                       {admin.prenom} {admin.nom}
                     </Typography>
-                    <Box 
+                    <Box
                       sx={{
-                        display: 'inline-block',
+                        display: "inline-block",
                         px: 2,
                         py: 0.5,
                         mt: 1,
-                        bgcolor: admin.superAdmin ? colors.greenAccent[500] : colors.blueAccent[500],
+                        bgcolor: admin.superAdmin
+                          ? colors.greenAccent[500]
+                          : colors.blueAccent[500],
                         borderRadius: 1,
-                        color: '#fff'
+                        color: "#fff",
                       }}
                     >
                       <Typography>
-                        {admin.superAdmin ? "Super Administrateur" : "Administrateur"}
+                        {admin.superAdmin
+                          ? "Super Administrateur"
+                          : "Administrateur"}
                       </Typography>
                     </Box>
                   </Box>
@@ -381,8 +426,12 @@ useEffect(() => {
 
                 {/* Information display */}
                 <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <BadgeOutlinedIcon sx={{ mr: 2, color: colors.grey[400], mt: 0.5 }} />
+                  <Box
+                    sx={{ display: "flex", alignItems: "flex-start", mb: 2 }}
+                  >
+                    <BadgeOutlinedIcon
+                      sx={{ mr: 2, color: colors.grey[400], mt: 0.5 }}
+                    />
                     <Box>
                       <Typography variant="body2" color="text.secondary">
                         Nom complet
@@ -392,9 +441,13 @@ useEffect(() => {
                       </Typography>
                     </Box>
                   </Box>
-                  
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <EmailOutlinedIcon sx={{ mr: 2, color: colors.grey[400], mt: 0.5 }} />
+
+                  <Box
+                    sx={{ display: "flex", alignItems: "flex-start", mb: 2 }}
+                  >
+                    <EmailOutlinedIcon
+                      sx={{ mr: 2, color: colors.grey[400], mt: 0.5 }}
+                    />
                     <Box>
                       <Typography variant="body2" color="text.secondary">
                         Email
@@ -404,9 +457,11 @@ useEffect(() => {
                       </Typography>
                     </Box>
                   </Box>
-                  
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                    <LocationOnOutlinedIcon sx={{ mr: 2, color: colors.grey[400], mt: 0.5 }} />
+
+                  <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+                    <LocationOnOutlinedIcon
+                      sx={{ mr: 2, color: colors.grey[400], mt: 0.5 }}
+                    />
                     <Box>
                       <Typography variant="body2" color="text.secondary">
                         Région
@@ -421,14 +476,14 @@ useEffect(() => {
                 <Divider sx={{ my: 3 }} />
 
                 {/* Action */}
-                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                <Box sx={{ display: "flex", justifyContent: "center" }}>
                   <Button
                     variant="contained"
                     onClick={handleClose}
-                    sx={{ 
+                    sx={{
                       px: 4,
-                      bgcolor: colors.blueAccent[600], 
-                      '&:hover': { bgcolor: colors.blueAccent[700] } 
+                      bgcolor: colors.blueAccent[600],
+                      "&:hover": { bgcolor: colors.blueAccent[700] },
                     }}
                   >
                     Fermer

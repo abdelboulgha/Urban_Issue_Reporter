@@ -1,5 +1,17 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, Button, Modal, Card, CardContent, CardActions, IconButton, Grid, TextField, Alert } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  Modal,
+  Card,
+  CardContent,
+  CardActions,
+  IconButton,
+  Grid,
+  TextField,
+  Alert,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -33,8 +45,14 @@ const Categories = () => {
   const [openModal, setOpenModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
-  const [editedCategory, setEditedCategory] = useState({ libelle: "", description: "" });
-  const [newCategory, setNewCategory] = useState({ libelle: "", description: "" });
+  const [editedCategory, setEditedCategory] = useState({
+    libelle: "",
+    description: "",
+  });
+  const [newCategory, setNewCategory] = useState({
+    libelle: "",
+    description: "",
+  });
   const [errors, setErrors] = useState({ libelle: false, description: false });
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,12 +60,17 @@ const Categories = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const categoriesResponse = await axios.get("http://localhost:3000/api/categories");
+      const categoriesResponse = await axios.get(
+        "https://urbanissuereporter-86jk0m0e.b4a.run/api/categories"
+      );
       setCategories(categoriesResponse.data.categories);
       setLoading(false);
     } catch (err) {
       console.error("Erreur API:", err);
-      setFormError("Erreur lors du chargement des catégories: " + (err.response?.data?.message || err.message));
+      setFormError(
+        "Erreur lors du chargement des catégories: " +
+          (err.response?.data?.message || err.message)
+      );
       setLoading(false);
     }
   };
@@ -66,7 +89,7 @@ const Categories = () => {
   };
 
   const handleOpenModal = (category) => {
-    setSelectedCategory({...category});
+    setSelectedCategory({ ...category });
     setOpenModal(true);
     setEditMode(false);
     setFormError("");
@@ -82,12 +105,12 @@ const Categories = () => {
   };
 
   const handleEdit = (category) => {
-    setSelectedCategory({...category});
+    setSelectedCategory({ ...category });
     // Assurez-vous que l'ID est préservé dans l'objet editedCategory
     setEditedCategory({
       id: category.id,
       libelle: category.libelle,
-      description: category.description
+      description: category.description,
     });
     setEditMode(true);
     setOpenModal(true);
@@ -98,11 +121,11 @@ const Categories = () => {
   const validateFields = (category) => {
     const newErrors = {
       libelle: !category.libelle.trim(),
-      description: !category.description.trim()
+      description: !category.description.trim(),
     };
-    
+
     setErrors(newErrors);
-    
+
     return !newErrors.libelle && !newErrors.description;
   };
 
@@ -111,25 +134,28 @@ const Categories = () => {
       setFormError("Tous les champs sont obligatoires");
       return;
     }
-    
+
     if (!selectedCategory || !selectedCategory.id) {
       setFormError("ID de catégorie manquant");
       return;
     }
-    
+
     try {
       setLoading(true);
       console.log(`Modification de la catégorie ID: ${selectedCategory.id}`);
       console.log("Données envoyées:", editedCategory);
-      
+
       // S'assurer que l'ID est dans les données envoyées
       const dataToSend = {
         ...editedCategory,
-        id: selectedCategory.id
+        id: selectedCategory.id,
       };
-      
-      const response = await axios.put(`http://localhost:3000/api/categorie/${selectedCategory.id}`, dataToSend);
-      
+
+      const response = await axios.put(
+        `https://urbanissuereporter-86jk0m0e.b4a.run/api/categorie/${selectedCategory.id}`,
+        dataToSend
+      );
+
       if (response.data) {
         console.log("Réponse de l'API:", response.data);
         await fetchCategories();
@@ -146,7 +172,10 @@ const Categories = () => {
       if (err.response) {
         console.error("Détails de l'erreur:", err.response.data);
       }
-      setFormError("Erreur lors de la modification: " + (err.response?.data?.message || err.message));
+      setFormError(
+        "Erreur lors de la modification: " +
+          (err.response?.data?.message || err.message)
+      );
       setLoading(false);
     }
   };
@@ -159,8 +188,10 @@ const Categories = () => {
   const confirmDelete = async () => {
     try {
       setLoading(true);
-      const response = await axios.delete(`http://localhost:3000/api/categorie/${selectedCategory}`);
-      
+      const response = await axios.delete(
+        `https://urbanissuereporter-86jk0m0e.b4a.run/api/categorie/${selectedCategory}`
+      );
+
       if (response.data) {
         await fetchCategories();
         setOpenConfirm(false);
@@ -168,7 +199,10 @@ const Categories = () => {
       setLoading(false);
     } catch (err) {
       console.error("Erreur lors de la suppression:", err);
-      setFormError("Erreur lors de la suppression: " + (err.response?.data?.message || err.message));
+      setFormError(
+        "Erreur lors de la suppression: " +
+          (err.response?.data?.message || err.message)
+      );
       setLoading(false);
       setOpenConfirm(false);
     }
@@ -179,11 +213,14 @@ const Categories = () => {
       setFormError("Tous les champs sont obligatoires");
       return;
     }
-    
+
     try {
       setLoading(true);
-      const response = await axios.post("http://localhost:3000/api/categorie", newCategory);
-      
+      const response = await axios.post(
+        "https://urbanissuereporter-86jk0m0e.b4a.run/api/categorie",
+        newCategory
+      );
+
       if (response.data) {
         console.log("Réponse de l'API (ajout):", response.data);
         await fetchCategories();
@@ -200,7 +237,10 @@ const Categories = () => {
       if (err.response) {
         console.error("Détails de l'erreur (ajout):", err.response.data);
       }
-      setFormError("Erreur lors de l'ajout: " + (err.response?.data?.message || err.message));
+      setFormError(
+        "Erreur lors de l'ajout: " +
+          (err.response?.data?.message || err.message)
+      );
       setLoading(false);
     }
   };
@@ -208,17 +248,17 @@ const Categories = () => {
   // Ajout de la fonction pour valider et nettoyer les champs lors de la saisie
   const handleInputChange = (e, isNewCategory = false) => {
     const { name, value } = e.target;
-    
+
     if (isNewCategory) {
       setNewCategory({ ...newCategory, [name]: value });
       // Réinitialiser l'erreur du champ si l'utilisateur commence à saisir
-      if (value.trim() !== '') {
+      if (value.trim() !== "") {
         setErrors({ ...errors, [name]: false });
       }
     } else {
       setEditedCategory({ ...editedCategory, [name]: value });
       // Réinitialiser l'erreur du champ si l'utilisateur commence à saisir
-      if (value.trim() !== '') {
+      if (value.trim() !== "") {
         setErrors({ ...errors, [name]: false });
       }
     }
@@ -227,31 +267,36 @@ const Categories = () => {
   return (
     <Box sx={{ height: "100vh", overflow: "auto" }}>
       <Box m="20px">
-        <Header title="CATÉGORIES" subtitle="Gestion des catégories du système" />
-        
+        <Header
+          title="CATÉGORIES"
+          subtitle="Gestion des catégories du système"
+        />
+
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             startIcon={<AddIcon />}
-            sx={{ 
+            sx={{
               backgroundColor: colors.blueAccent[700],
               color: colors.grey[100],
               fontSize: "14px",
               fontWeight: "bold",
               padding: "10px 20px",
-              my: 2
-            }} 
+              my: 2,
+            }}
             onClick={handleOpenAdd}
             disabled={loading}
           >
             Ajouter une Catégorie
           </Button>
         </Box>
-        
+
         {formError && !openModal && !openConfirm && (
-          <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {formError}
+          </Alert>
         )}
-        
+
         <Box
           m="40px 0 0 0"
           sx={{
@@ -284,24 +329,54 @@ const Categories = () => {
               <Grid item xs={12} sm={6} md={4} key={category.id}>
                 <Card>
                   <CardContent>
-                    <Typography variant="h5" sx={{ color: colors.greenAccent[400], fontWeight: "bold", mb: 1 }}>
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        color: colors.greenAccent[400],
+                        fontWeight: "bold",
+                        mb: 1,
+                      }}
+                    >
                       {category.libelle}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: colors.grey[100] }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: colors.grey[100] }}
+                    >
                       {category.description}
                     </Typography>
                   </CardContent>
                   <CardActions>
-                    <IconButton onClick={() => handleOpenModal(category)} disabled={loading}
-                      sx={{ backgroundColor: colors.blueAccent[700], mr: 1, "&:hover": { backgroundColor: colors.blueAccent[800] } }}>
+                    <IconButton
+                      onClick={() => handleOpenModal(category)}
+                      disabled={loading}
+                      sx={{
+                        backgroundColor: colors.blueAccent[700],
+                        mr: 1,
+                        "&:hover": { backgroundColor: colors.blueAccent[800] },
+                      }}
+                    >
                       <VisibilityIcon />
                     </IconButton>
-                    <IconButton onClick={() => handleEdit(category)} disabled={loading}
-                      sx={{ backgroundColor: colors.greenAccent[700], mr: 1, "&:hover": { backgroundColor: colors.greenAccent[800] } }}>
+                    <IconButton
+                      onClick={() => handleEdit(category)}
+                      disabled={loading}
+                      sx={{
+                        backgroundColor: colors.greenAccent[700],
+                        mr: 1,
+                        "&:hover": { backgroundColor: colors.greenAccent[800] },
+                      }}
+                    >
                       <EditIcon />
                     </IconButton>
-                    <IconButton onClick={() => handleDelete(category.id)} disabled={loading}
-                      sx={{ backgroundColor: colors.redAccent[700], "&:hover": { backgroundColor: colors.redAccent[800] } }}>
+                    <IconButton
+                      onClick={() => handleDelete(category.id)}
+                      disabled={loading}
+                      sx={{
+                        backgroundColor: colors.redAccent[700],
+                        "&:hover": { backgroundColor: colors.redAccent[800] },
+                      }}
+                    >
                       <DeleteIcon />
                     </IconButton>
                   </CardActions>
@@ -313,19 +388,21 @@ const Categories = () => {
 
         {/* Modal */}
         <Modal open={openModal} onClose={loading ? null : handleCloseModal}>
-          <Box sx={{
-            ...modalStyle,
-            bgcolor: colors.primary[400],
-            color: colors.grey[100],
-          }}>
+          <Box
+            sx={{
+              ...modalStyle,
+              bgcolor: colors.primary[400],
+              color: colors.grey[100],
+            }}
+          >
             <IconButton
               onClick={handleCloseModal}
-              sx={{ 
-                position: "absolute", 
-                top: 10, 
+              sx={{
+                position: "absolute",
+                top: 10,
                 right: 10,
                 color: colors.grey[100],
-                "&:hover": { backgroundColor: colors.grey[700] }
+                "&:hover": { backgroundColor: colors.grey[700] },
               }}
               disabled={loading}
             >
@@ -333,19 +410,27 @@ const Categories = () => {
             </IconButton>
             {selectedCategory && !editMode && (
               <>
-                <Typography variant="h5" gutterBottom sx={{ color: colors.greenAccent[400], fontWeight: "bold" }}>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{ color: colors.greenAccent[400], fontWeight: "bold" }}
+                >
                   {selectedCategory.libelle}
                 </Typography>
-                <Typography variant="body1" paragraph sx={{ textAlign: "center", color: colors.grey[100] }}>
+                <Typography
+                  variant="body1"
+                  paragraph
+                  sx={{ textAlign: "center", color: colors.grey[100] }}
+                >
                   {selectedCategory.description}
                 </Typography>
-                <Button 
-                  variant="contained" 
-                  onClick={handleCloseModal} 
-                  sx={{ 
-                    mt: 2, 
+                <Button
+                  variant="contained"
+                  onClick={handleCloseModal}
+                  sx={{
+                    mt: 2,
                     backgroundColor: colors.blueAccent[700],
-                    "&:hover": { backgroundColor: colors.blueAccent[800] }
+                    "&:hover": { backgroundColor: colors.blueAccent[800] },
                   }}
                   disabled={loading}
                 >
@@ -355,10 +440,18 @@ const Categories = () => {
             )}
             {editMode && (
               <>
-                <Typography variant="h5" gutterBottom sx={{ color: colors.greenAccent[400], fontWeight: "bold" }}>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{ color: colors.greenAccent[400], fontWeight: "bold" }}
+                >
                   Modifier Catégorie
                 </Typography>
-                {formError && <Alert severity="error" sx={{ width: '100%', mb: 2 }}>{formError}</Alert>}
+                {formError && (
+                  <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+                    {formError}
+                  </Alert>
+                )}
                 <TextField
                   name="libelle"
                   label="Libellé"
@@ -367,7 +460,9 @@ const Categories = () => {
                   value={editedCategory.libelle}
                   onChange={(e) => handleInputChange(e)}
                   error={errors.libelle}
-                  helperText={errors.libelle ? "Le libellé est obligatoire" : ""}
+                  helperText={
+                    errors.libelle ? "Le libellé est obligatoire" : ""
+                  }
                   required
                   disabled={loading}
                   sx={{
@@ -398,7 +493,9 @@ const Categories = () => {
                   value={editedCategory.description}
                   onChange={(e) => handleInputChange(e)}
                   error={errors.description}
-                  helperText={errors.description ? "La description est obligatoire" : ""}
+                  helperText={
+                    errors.description ? "La description est obligatoire" : ""
+                  }
                   required
                   disabled={loading}
                   sx={{
@@ -421,13 +518,13 @@ const Categories = () => {
                     },
                   }}
                 />
-                <Button 
-                  variant="contained" 
-                  onClick={handleSaveEdit} 
-                  sx={{ 
-                    mt: 2, 
+                <Button
+                  variant="contained"
+                  onClick={handleSaveEdit}
+                  sx={{
+                    mt: 2,
                     backgroundColor: colors.greenAccent[700],
-                    "&:hover": { backgroundColor: colors.greenAccent[800] }
+                    "&:hover": { backgroundColor: colors.greenAccent[800] },
                   }}
                   disabled={loading}
                 >
@@ -437,10 +534,18 @@ const Categories = () => {
             )}
             {!editMode && !selectedCategory && (
               <>
-                <Typography variant="h5" gutterBottom sx={{ color: colors.greenAccent[400], fontWeight: "bold" }}>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{ color: colors.greenAccent[400], fontWeight: "bold" }}
+                >
                   Ajouter Catégorie
                 </Typography>
-                {formError && <Alert severity="error" sx={{ width: '100%', mb: 2 }}>{formError}</Alert>}
+                {formError && (
+                  <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+                    {formError}
+                  </Alert>
+                )}
                 <TextField
                   name="libelle"
                   label="Libellé"
@@ -449,7 +554,9 @@ const Categories = () => {
                   value={newCategory.libelle}
                   onChange={(e) => handleInputChange(e, true)}
                   error={errors.libelle}
-                  helperText={errors.libelle ? "Le libellé est obligatoire" : ""}
+                  helperText={
+                    errors.libelle ? "Le libellé est obligatoire" : ""
+                  }
                   required
                   disabled={loading}
                   sx={{
@@ -480,7 +587,9 @@ const Categories = () => {
                   value={newCategory.description}
                   onChange={(e) => handleInputChange(e, true)}
                   error={errors.description}
-                  helperText={errors.description ? "La description est obligatoire" : ""}
+                  helperText={
+                    errors.description ? "La description est obligatoire" : ""
+                  }
                   required
                   disabled={loading}
                   sx={{
@@ -503,13 +612,13 @@ const Categories = () => {
                     },
                   }}
                 />
-                <Button 
-                  variant="contained" 
-                  onClick={handleAddCategory} 
-                  sx={{ 
-                    mt: 2, 
+                <Button
+                  variant="contained"
+                  onClick={handleAddCategory}
+                  sx={{
+                    mt: 2,
                     backgroundColor: colors.greenAccent[700],
-                    "&:hover": { backgroundColor: colors.greenAccent[800] }
+                    "&:hover": { backgroundColor: colors.greenAccent[800] },
                   }}
                   disabled={loading}
                 >
@@ -521,34 +630,43 @@ const Categories = () => {
         </Modal>
 
         {/* Confirmation Modal */}
-        <Modal open={openConfirm} onClose={loading ? null : () => setOpenConfirm(false)}>
-          <Box sx={{
-            ...modalStyle,
-            bgcolor: colors.primary[400],
-            color: colors.grey[100],
-          }}>
+        <Modal
+          open={openConfirm}
+          onClose={loading ? null : () => setOpenConfirm(false)}
+        >
+          <Box
+            sx={{
+              ...modalStyle,
+              bgcolor: colors.primary[400],
+              color: colors.grey[100],
+            }}
+          >
             <Typography variant="h6" sx={{ color: colors.grey[100] }}>
               Êtes-vous sûr de vouloir supprimer cette catégorie ?
             </Typography>
-            {formError && <Alert severity="error" sx={{ width: '100%', my: 2 }}>{formError}</Alert>}
+            {formError && (
+              <Alert severity="error" sx={{ width: "100%", my: 2 }}>
+                {formError}
+              </Alert>
+            )}
             <Box mt={2} display="flex" justifyContent="center">
-              <Button 
-                variant="contained" 
-                sx={{ 
-                  mr: 2, 
+              <Button
+                variant="contained"
+                sx={{
+                  mr: 2,
                   backgroundColor: colors.redAccent[700],
-                  "&:hover": { backgroundColor: colors.redAccent[800] }
+                  "&:hover": { backgroundColor: colors.redAccent[800] },
                 }}
-                onClick={confirmDelete} 
+                onClick={confirmDelete}
                 disabled={loading}
               >
                 {loading ? "Suppression..." : "Confirmer"}
               </Button>
-              <Button 
+              <Button
                 variant="contained"
-                sx={{ 
+                sx={{
                   backgroundColor: colors.blueAccent[700],
-                  "&:hover": { backgroundColor: colors.blueAccent[800] }
+                  "&:hover": { backgroundColor: colors.blueAccent[800] },
                 }}
                 onClick={() => setOpenConfirm(false)}
                 disabled={loading}
