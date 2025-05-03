@@ -11,6 +11,7 @@ const { sequelize } = require("./database/db");
 const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
+const citoyenAuthRoutes = require('./routes/citoyenAuthRoutes');
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -54,6 +55,9 @@ app.use("/api", reclamationRoutes);
 app.use("/api", regionRoutes);
 app.use("/api", categorieRoutes);
 app.use("/api", photoRoutes);
+//app.use('/api/auth', require('./routes/authRoutes')); // Routes d'authentification des admins
+app.use('/api/citoyen-auth', citoyenAuthRoutes); // Routes d'authentification des citoyens
+//app.use('/api', require('./routes/citoyenRoutes')); // Routes des citoyens
 
 // Route pour synchroniser la base de données
 app.get("/api/sync", (req, res) => {

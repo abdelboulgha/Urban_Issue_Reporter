@@ -2,8 +2,32 @@ const citoyenSchema = require('../models/citoyenSchema');
 const regionSchema = require("../models/regionSchema"); // Adjust path if needed
 
 // Create a new citoyen
+// const createCitoyen = async ({ nom, prenom, adresse, cin, email, telephone, password }) => {
+//   try {
+//     const citoyen = await citoyenSchema.create({
+//       nom,
+//       prenom,
+//       adresse,
+//       cin,
+//       email,
+//       telephone,
+//       password
+//     });
+//     return citoyen;
+//   } catch (error) {
+//     throw new Error('Error creating citoyen: ' + error.message);
+//   }
+// };
+
+
+const bcrypt = require('bcrypt');
+
+// Create a new citoyen with hashed password
 const createCitoyen = async ({ nom, prenom, adresse, cin, email, telephone, password }) => {
   try {
+    // Hacher le mot de passe
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
     const citoyen = await citoyenSchema.create({
       nom,
       prenom,
@@ -11,11 +35,19 @@ const createCitoyen = async ({ nom, prenom, adresse, cin, email, telephone, pass
       cin,
       email,
       telephone,
-      password
+      password: hashedPassword
     });
     return citoyen;
   } catch (error) {
     throw new Error('Error creating citoyen: ' + error.message);
+  }
+};
+const getCitoyenByEmail = async (email) => {
+  try {
+    const citoyen = await citoyenSchema.findOne({ where: { email } });
+    return citoyen;
+  } catch (error) {
+    throw new Error('Error fetching citoyen by email: ' + error.message);
   }
 };
 
@@ -76,6 +108,7 @@ const getCitoyensCount = async () => {
 
 module.exports = {
   createCitoyen,
+  getCitoyenByEmail,
   getAllCitoyens,
   getCitoyenById,
   updateCitoyen,
