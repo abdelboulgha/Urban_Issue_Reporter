@@ -324,6 +324,21 @@ const getAllReclamationsByRegion = async (adminId) => {
   }
 };
 
+const updateReclamationVotes = async (id, nombre_de_votes) => {
+  try {
+    const reclamation = await reclamationSchema.findByPk(id);
+    if (!reclamation) {
+      throw new Error('Réclamation non trouvée');
+    }
+
+    reclamation.nombre_de_votes = nombre_de_votes;
+    await reclamation.save();
+    return reclamation;
+  } catch (error) {
+    throw new Error('Erreur lors de la mise à jour des votes: ' + error.message);
+  }
+};
+
 
 
 module.exports = {
@@ -339,5 +354,6 @@ module.exports = {
   getReclamationsOfRegion,
   getTopThreeUrgentsReclamations,
   getAllReclamationsByRegion,
-  getReclamationByRegion
+  getReclamationByRegion,
+  updateReclamationVotes
 };

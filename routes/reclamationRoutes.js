@@ -28,5 +28,6 @@ router.get('/all-reclamations-by-region/:adminId', reclamationController.getAllR
 
 router.get('/reclamations-by-region/:selectedRegion', reclamationController.getReclamationsByRegion);
 router.get('/reclmationbyregion/:regionId', reclamationController.getReclamationByRegion);
-
+// Route pour mettre à jour le nombre de votes d'une réclamation
+router.put('/reclamation/:id/votes', reclamationController.updateReclamationVotes);
 module.exports = router;

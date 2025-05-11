@@ -318,7 +318,30 @@ const getAllReclamationsByRegion = async (req, res) => {
   }
 };
 
+const updateReclamationVotes = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre_de_votes } = req.body;
 
+    if (nombre_de_votes === undefined) {
+      return res.status(400).json({
+        message: 'Le nombre de votes est requis dans le corps de la requête',
+      });
+    }
+
+    const updatedReclamation = await reclamationService.updateReclamationVotes(id, nombre_de_votes);
+
+    res.status(200).json({
+      message: 'Nombre de votes mis à jour avec succès',
+      reclamation: updatedReclamation,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Erreur lors de la mise à jour du nombre de votes',
+      error: error.message,
+    });
+  }
+};
 
 
 module.exports = {
@@ -334,5 +357,6 @@ module.exports = {
   getReclamationsOfRegion,
   getTopThreeUrgentsReclamations,
   getReclamationByRegion,
-  getAllReclamationsByRegion
+  getAllReclamationsByRegion,
+  updateReclamationVotes
 };
