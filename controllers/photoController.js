@@ -1,4 +1,5 @@
 const photoService = require('../services/photoService'); // Adjust path if needed
+const { upload } = require('../cloudinaryConfig');
 
 // CREATE - Create a new photo
 const createPhoto = async (req, res) => {
@@ -100,11 +101,41 @@ const getPhotosByReclamationId = async (req, res) => {
   }
 };
 
+const uploadImages = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'Aucune image fournie' });
+    }
+    
+    // Traitement de chaque fichier uploadé
+    const uploadedImages = req.files.map(file => {
+      return {
+        imageUrl: file.path,
+        secureUrl: file.secure_url,
+        publicId: file.public_id
+      };
+    });
+    
+    res.json({
+      success: true,
+      count: uploadedImages.length,
+      images: uploadedImages
+    });
+  } catch (error) {
+    console.error('Erreur lors de l\'upload :', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de l\'upload sur Cloudinary'
+    });
+  }
+};
+
 module.exports = {
   createPhoto,
   getAllPhotos,
   getPhotoById,
   updatePhoto,
   deletePhoto,
-  getPhotosByReclamationId
+  getPhotosByReclamationId,
+  uploadImages
 };
